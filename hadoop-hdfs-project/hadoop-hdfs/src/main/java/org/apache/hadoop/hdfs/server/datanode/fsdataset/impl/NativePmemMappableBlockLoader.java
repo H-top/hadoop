@@ -84,7 +84,7 @@ public class NativePmemMappableBlockLoader extends PmemMappableBlockLoader {
     FileChannel blockChannel = null;
     try {
       blockChannel = blockIn.getChannel();
-      ByteBuffer blockBuf = ByteBuffer.allocate((int)length);
+      ByteBuffer blockBuf = ByteBuffer.allocate(8*1024*1024);
       if (blockChannel == null) {
         throw new IOException("Block InputStream has no FileChannel.");
       }
@@ -97,20 +97,20 @@ public class NativePmemMappableBlockLoader extends PmemMappableBlockLoader {
             " to persistent storage.");
       }
       mappedAddress = region.getAddress();
-      fillBuffer(blockChannel, blockBuf);
-      blockBuf.flip();
-      POSIX.Pmem.memCopy(blockBuf.array(), mappedAddress,
-              region.isPmem(), length);
-      blockBuf.clear();
-//      while (bytesCopy < length) {
-//        int bytesRead = fillBuffer(blockChannel, blockBuf);
-//        bytesCopy += bytesRead;
-//        blockBuf.flip();
-//        POSIX.Pmem.memCopy(blockBuf.array(), mappedAddress,
-//                region.isPmem(), bytesRead);
-//        mappedAddress += bytesRead;
-//        blockBuf.clear();
-//      }
+//      fillBuffer(blockChannel, blockBuf);
+//      blockBuf.flip();
+//      POSIX.Pmem.memCopy(blockBuf.array(), mappedAddress,
+//              region.isPmem(), length);
+//      blockBuf.clear();
+      while (bytesCopy < length) {
+        int bytesRead = fillBuffer(blockChannel, blockBuf);
+        bytesCopy += bytesRead;
+        blockBuf.flip();
+        POSIX.Pmem.memCopy(blockBuf.array(), mappedAddress,
+                region.isPmem(), bytesRead);
+        mappedAddress += bytesRead;
+        blockBuf.clear();
+      }
       verifyChecksum(length, metaIn, new RandomAccessFile(filePath, "r").getChannel(), blockFileName);
       mappableBlock = new NativePmemMappedBlock(region.getAddress(),
           region.getLength(), key);

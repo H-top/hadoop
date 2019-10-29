@@ -31,10 +31,7 @@ import org.apache.hadoop.util.DataChecksum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
@@ -114,7 +111,7 @@ public class NativePmemMappableBlockLoader extends PmemMappableBlockLoader {
 //        mappedAddress += bytesRead;
 //        blockBuf.clear();
 //      }
-      verifyChecksum(length, metaIn, blockChannel, blockFileName);
+      verifyChecksum(length, metaIn, new RandomAccessFile(filePath, "r").getChannel(), blockFileName);
       mappableBlock = new NativePmemMappedBlock(region.getAddress(),
           region.getLength(), key);
       LOG.info("Successfully cached one replica:{} into persistent memory"

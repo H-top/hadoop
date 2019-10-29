@@ -81,10 +81,13 @@ public class NativePmemMappableBlockLoader extends PmemMappableBlockLoader {
     NativePmemMappedBlock mappableBlock = null;
     POSIX.PmemMappedRegion region = null;
     String filePath = null;
+    int bytesCopy = 0;
+    long mappedAddress = -1L;
 
     FileChannel blockChannel = null;
     try {
       blockChannel = blockIn.getChannel();
+      ByteBuffer blockBuf = ByteBuffer.allocateDirect(8*1024*1024);
       if (blockChannel == null) {
         throw new IOException("Block InputStream has no FileChannel.");
       }
@@ -96,8 +99,17 @@ public class NativePmemMappableBlockLoader extends PmemMappableBlockLoader {
         throw new IOException("Failed to map the block " + blockFileName +
             " to persistent storage.");
       }
-      verifyChecksumAndMapBlock(region, length, metaIn, blockChannel,
-          blockFileName);
+      mappedAddress = region.getAddress();
+      while (bytesCopy < length) {
+        int bytesRead = fillBuffer(blockChannel, blockBuf);
+        bytesCopy += bytesRead;
+        blockBuf.flip();
+        POSIX.Pmem.memCopy(blockBuf.array(), mappedAddress,
+                region.isPmem(), bytesRead);
+        mappedAddress += bytesRead;
+        blockBuf.clear();
+      }
+      verifyChecksum(length, metaIn, blockChannel, blockFileName);
       mappableBlock = new NativePmemMappedBlock(region.getAddress(),
           region.getLength(), key);
       LOG.info("Successfully cached one replica:{} into persistent memory"

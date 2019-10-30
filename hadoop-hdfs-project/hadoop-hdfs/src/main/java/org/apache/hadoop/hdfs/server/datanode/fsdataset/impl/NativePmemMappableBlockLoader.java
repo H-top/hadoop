@@ -84,7 +84,7 @@ public class NativePmemMappableBlockLoader extends PmemMappableBlockLoader {
     FileChannel blockChannel = null;
     try {
       blockChannel = blockIn.getChannel();
-      ByteBuffer blockBuf = ByteBuffer.allocate(8*1024*1024);
+      ByteBuffer blockBuf = ByteBuffer.allocate(4*1024);
       if (blockChannel == null) {
         throw new IOException("Block InputStream has no FileChannel.");
       }
@@ -111,6 +111,7 @@ public class NativePmemMappableBlockLoader extends PmemMappableBlockLoader {
         mappedAddress += bytesRead;
         blockBuf.clear();
       }
+      POSIX.Pmem.memSync(region);
       verifyChecksum(length, metaIn, new RandomAccessFile(filePath, "r").getChannel(), blockFileName);
       mappableBlock = new NativePmemMappedBlock(region.getAddress(),
           region.getLength(), key);

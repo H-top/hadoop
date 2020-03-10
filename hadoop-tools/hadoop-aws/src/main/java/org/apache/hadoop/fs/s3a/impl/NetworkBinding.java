@@ -80,13 +80,6 @@ public class NetworkBinding {
         throw new IllegalArgumentException(channelModeString +
                 " is not a valid value for " + SSL_CHANNEL_MODE);
       }
-      if (channelMode == DelegatingSSLSocketFactory.SSLChannelMode.OpenSSL ||
-          channelMode == DelegatingSSLSocketFactory.SSLChannelMode.Default) {
-        throw new UnsupportedOperationException("S3A does not support " +
-                "setting " + SSL_CHANNEL_MODE + " " +
-                DelegatingSSLSocketFactory.SSLChannelMode.OpenSSL + " or " +
-                DelegatingSSLSocketFactory.SSLChannelMode.Default);
-      }
 
       // Look for AWS_SOCKET_FACTORY_CLASSNAME on the classpath and instantiate
       // an instance using the DelegatingSSLSocketFactory as the
@@ -114,7 +107,10 @@ public class NetworkBinding {
   /**
    * Given an S3 bucket region as returned by a bucket location query,
    * fix it into a form which can be used by other AWS commands.
-   * https://forums.aws.amazon.com/thread.jspa?messageID=796829&tstart=0
+   * <p>
+   * <a href="https://forums.aws.amazon.com/thread.jspa?messageID=796829">
+   * https://forums.aws.amazon.com/thread.jspa?messageID=796829</a>
+   * </p>
    * See also {@code com.amazonaws.services.s3.model.Region.fromValue()}
    * for its conversion logic.
    * @param region region from S3 call.

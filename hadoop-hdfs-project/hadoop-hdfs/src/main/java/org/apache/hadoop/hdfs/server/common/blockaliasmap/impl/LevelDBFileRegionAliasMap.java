@@ -267,6 +267,12 @@ public class LevelDBFileRegionAliasMap
     }
 
     @Override
+    public void remove(Block block) throws IOException {
+      byte[] key = toProtoBufBytes(block);
+      db.delete(key);
+    }
+
+    @Override
     public void close() throws IOException {
       if (db != null) {
         db.close();

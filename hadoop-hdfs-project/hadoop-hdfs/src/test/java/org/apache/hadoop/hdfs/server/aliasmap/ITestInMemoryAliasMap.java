@@ -101,7 +101,7 @@ public class ITestInMemoryAliasMap {
   }
 
   @Test
-  public void list() throws IOException {
+  public void testIteration() throws IOException {
     Block block1 = new Block(42, 43, 44);
     Block block2 = new Block(43, 44, 45);
     Block block3 = new Block(44, 45, 46);

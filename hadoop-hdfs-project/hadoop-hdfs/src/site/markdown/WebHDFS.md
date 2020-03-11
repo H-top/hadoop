@@ -2621,6 +2621,12 @@ var diffReportEntries =
       "enum"        : ["CREATE", "MODIFY", "DELETE", "RENAME"],
       "required"    : true
     }
+    "inodeType":
+    {
+      "description" : "Type of INode",
+      "enum"        : ["FILE", "DIRECTORY", "SYMLINK"],
+      "required"    : true
+    }
   }
 }
 ```

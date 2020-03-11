@@ -17,33 +17,17 @@
  */
 package org.apache.hadoop.hdfs.protocol;
 
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.crypto.CryptoProtocolVersion;
 import org.apache.hadoop.fs.BatchedRemoteIterator.BatchedEntries;
-import org.apache.hadoop.fs.FileAlreadyExistsException;
-import org.apache.hadoop.fs.MountInfo;
-import org.apache.hadoop.fs.PathIsNotEmptyDirectoryException;
-import org.apache.hadoop.ha.HAServiceProtocol;
-import org.apache.hadoop.hdfs.AddBlockFlag;
-import org.apache.hadoop.fs.CacheFlag;
-import org.apache.hadoop.fs.ContentSummary;
-import org.apache.hadoop.fs.CreateFlag;
-import org.apache.hadoop.fs.FsServerDefaults;
-import org.apache.hadoop.fs.Options;
-import org.apache.hadoop.fs.QuotaUsage;
-import org.apache.hadoop.fs.StorageType;
-import org.apache.hadoop.fs.XAttr;
-import org.apache.hadoop.fs.XAttrSetFlag;
+import org.apache.hadoop.fs.*;
 import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.ha.HAServiceProtocol;
+import org.apache.hadoop.hdfs.AddBlockFlag;
 import org.apache.hadoop.hdfs.inotify.EventBatchList;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.ReencryptAction;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.RollingUpgradeAction;
@@ -61,6 +45,11 @@ import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.KerberosInfo;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenInfo;
+
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
 
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_NAMENODE_KERBEROS_PRINCIPAL_KEY;
 
@@ -1864,4 +1853,47 @@ public interface ClientProtocol {
    */
   @AtMostOnce
   boolean removeMount(String mountPath) throws IOException;
+
+  /**
+   * synchronize a file or directory creation to a remote store.
+   * @param src Path of an existing file/directory.
+   * @throws AccessControlException If access is denied.
+   * @throws org.apache.hadoop.fs.UnresolvedLinkException if <code>src</code>
+   *           contains a symlink.
+   * @throws java.io.FileNotFoundException If file/dir <code>src</code> is not
+   *           found.
+   * @throws org.apache.hadoop.hdfs.server.namenode.SafeModeException operation not
+   *           allowed in safemode.
+   */
+  @AtMostOnce
+  void syncCreateToRemoteStore(String src) throws IOException;
+
+  /**
+   * synchronize a file or directory rename to a remote store.
+   * @param src Path of an existing file/directory.
+   * @param dest URI of a destination where to write the url.
+   * @throws AccessControlException If access is denied.
+   * @throws org.apache.hadoop.fs.UnresolvedLinkException if <code>src</code>
+   *           contains a symlink.
+   * @throws java.io.FileNotFoundException If file/dir <code>src</code> is not
+   *           found.
+   * @throws org.apache.hadoop.hdfs.server.namenode.SafeModeException operation not
+   *           allowed in safemode.
+   */
+  @AtMostOnce
+  void syncRenameToRemoteStore(String src, String dest) throws IOException;
+
+  /**
+   * synchronize a file or directory deletion to a remote store.
+   * @param src Path of an existing file/directory.
+   * @throws AccessControlException If access is denied.
+   * @throws org.apache.hadoop.fs.UnresolvedLinkException if <code>src</code>
+   *           contains a symlink.
+   * @throws java.io.FileNotFoundException If file/dir <code>src</code> is not
+   *           found.
+   * @throws org.apache.hadoop.hdfs.server.namenode.SafeModeException operation not
+   *           allowed in safemode.
+   */
+  @AtMostOnce
+  void syncDeleteToRemoteStore(String src) throws IOException;
 }

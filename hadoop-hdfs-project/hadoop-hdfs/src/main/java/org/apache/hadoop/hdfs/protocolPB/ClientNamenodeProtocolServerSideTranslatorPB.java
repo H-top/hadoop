@@ -430,6 +430,18 @@ public class ClientNamenodeProtocolServerSideTranslatorPB implements
       VOID_SATISFYSTORAGEPOLICY_RESPONSE = SatisfyStoragePolicyResponseProto
       .getDefaultInstance();
 
+  private static final SyncCreateToRemoteStoreResponseProto
+    VOID_SYNCCREATETOREMOVESTORE_RESPONSE = SyncCreateToRemoteStoreResponseProto
+      .getDefaultInstance();
+
+  private static final SyncRenameToRemoteStoreResponseProto
+      VOID_SYNCRENAMETOREMOVESTORE_RESPONSE = SyncRenameToRemoteStoreResponseProto
+      .getDefaultInstance();
+
+  private static final SyncDeleteToRemoteStoreResponseProto
+      VOID_SYNCDELETETOREMOVESTORE_RESPONSE = SyncDeleteToRemoteStoreResponseProto
+      .getDefaultInstance();
+
   /**
    * Constructor
    * 
@@ -1931,6 +1943,42 @@ public class ClientNamenodeProtocolServerSideTranslatorPB implements
       throw new ServiceException(e);
     }
     return VOID_SATISFYSTORAGEPOLICY_RESPONSE;
+  }
+
+  @Override
+  public SyncCreateToRemoteStoreResponseProto syncCreateToRemoteStore(
+      RpcController controller,
+      SyncCreateToRemoteStoreRequestProto request) throws ServiceException {
+    try {
+      server.syncCreateToRemoteStore(request.getSrc());
+    } catch (IOException e) {
+      throw new ServiceException(e);
+    }
+    return VOID_SYNCCREATETOREMOVESTORE_RESPONSE;
+  }
+
+  @Override
+  public SyncRenameToRemoteStoreResponseProto syncRenameToRemoteStore(
+      RpcController controller,
+      SyncRenameToRemoteStoreRequestProto request) throws ServiceException {
+    try {
+      server.syncRenameToRemoteStore(request.getSrc(), request.getDest());
+    } catch (IOException e) {
+      throw new ServiceException(e);
+    }
+    return VOID_SYNCRENAMETOREMOVESTORE_RESPONSE;
+  }
+
+  @Override
+  public SyncDeleteToRemoteStoreResponseProto syncDeleteToRemoteStore(
+      RpcController controller,
+      SyncDeleteToRemoteStoreRequestProto request) throws ServiceException {
+    try {
+      server.syncCreateToRemoteStore(request.getSrc());
+    } catch (IOException e) {
+      throw new ServiceException(e);
+    }
+    return VOID_SYNCDELETETOREMOVESTORE_RESPONSE;
   }
 
   @Override

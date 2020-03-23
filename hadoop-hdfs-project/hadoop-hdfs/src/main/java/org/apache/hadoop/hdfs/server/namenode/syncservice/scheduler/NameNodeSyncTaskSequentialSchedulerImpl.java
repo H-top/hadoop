@@ -56,6 +56,9 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
         MetadataSyncOperationExecutor.createOnNameNode(conf);
   }
 
+  /**
+   * schedule metadata sync task，执行metadata sync task，并处理feedback
+   */
   @Override
   public void scheduleOnNameNode(MetadataSyncTask metadataSyncTask) {
     try {
@@ -82,6 +85,9 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
     }
   }
 
+  /**
+   * 如果是MULTIPART_COMPLETE task，update provided block report
+   */
   private void handleBlockReportUpdate(MetadataSyncTask metadataSyncTask,
       SyncTaskExecutionResult syncTaskExecutionResult) throws IOException {
     if (metadataSyncTask.getOperation() == MetadataSyncTaskOperation.MULTIPART_COMPLETE) {

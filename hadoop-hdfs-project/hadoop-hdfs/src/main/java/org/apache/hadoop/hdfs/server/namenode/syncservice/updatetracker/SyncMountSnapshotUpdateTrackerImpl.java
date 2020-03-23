@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.PathHandle;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.ProvidedStorageLocation;
-import org.apache.hadoop.hdfs.protocolPB.PBHelper;
 import org.apache.hadoop.hdfs.server.common.FileRegion;
 import org.apache.hadoop.hdfs.server.common.blockaliasmap.BlockAliasMap;
 import org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PhasedPlan;
@@ -37,15 +36,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
-import static org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation.MODIFY_FILE;
 import static org.apache.hadoop.hdfs.server.protocol.SyncTask.*;
 
+/**
+ * 跟snapshot无关，update aliasmap信息
+ * 创建schedulablesyncphase（non multipart和multipart）
+ */
 public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpdateTracker {
 
   private static final Logger LOG = LoggerFactory
@@ -72,6 +70,10 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     this.config = config;
   }
 
+  /**
+   * 在currenttasks和MultipartPlan中标记finished，并修改MultipartPlan属性
+   * finalize finished task（修改aliasmap）
+   */
   @Override
   public void markFinished(UUID syncTaskId, SyncTaskExecutionResult result) {
     LOG.info("Marking task as finished {}", syncTaskId);
@@ -89,6 +91,9 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     });
   }
 
+  /**
+   *在currentTasks和MultipartPlan中标记failed，if tracker is still valid, return true
+   */
   @Override
   public boolean markFailed(UUID syncTaskId, SyncTaskExecutionResult result) {
     LOG.error("Sync task currentTasks {}", syncTaskId);
@@ -99,6 +104,9 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     return isTrackerStillValid && multipartTrackerStillValid;
   }
 
+  /**
+   * 循环判断是否能被cancel
+   */
   @Override
   public boolean blockingCancel() {
     this.cancelling = true;
@@ -119,6 +127,9 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     return result;
   }
 
+  /**
+   * 判断是否能被cancel
+   */
   private boolean canBeCancelled() {
     return (multipartTrackerFinished || !this.multipartPlanOpt.isPresent())
         && currentTasks.isFinished();
@@ -131,6 +142,9 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
         && currentTasks.isFinished();
   }
 
+  /**
+   * 获取SchedulableSyncPhase
+   */
   @Override
   public SchedulableSyncPhase getNextSchedulablePhase() {
     if (this.cancelling) {
@@ -142,6 +156,10 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     }
   }
 
+  /**
+   * 生成SchedulableSyncPhase
+   * 如果currenttasks没有完成，则从currenttasks获取task；否则进入next phase
+   */
   private SchedulableSyncPhase handlePhase() {
     if (this.currentTasks.isNotFinished()) {
       List<SyncTask> tasksToDo = this.currentTasks.getTasksToDo();
@@ -162,6 +180,9 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     }
   }
 
+  /**
+   * 设置currenttasks，返回multipartable synctasks
+   */
   private List<CreateFileSyncTask> setCurrentTasksButSkimOffMultipartables(List<SyncTask> syncTasks) {
     //optimization, maybe a bit premature
     if (this.currentPhase != PhasedPlan.Phases.CREATE_FILES) {
@@ -183,6 +204,9 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     return createsThatNeedToBeMultiparted;
   }
 
+  /**
+   * 创建non multipart schedulablesyncphase
+   */
   private SchedulableSyncPhase createNonMultipartSchedulableTasks(Collection<SyncTask> others) {
     List<MetadataSyncTask> metadataSyncTasks = Lists.newArrayList();
     List<BlockSyncTask> blockSyncTasks = Lists.newArrayList();
@@ -228,6 +252,9 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     return SchedulableSyncPhase.create(metadataSyncTasks, blockSyncTasks);
   }
 
+  /**
+   * 创建multipartable SchedulableSyncPhase
+   */
   private SchedulableSyncPhase startMultipartPlan(List<CreateFileSyncTask> nextSchedulableWork) {
     if (nextSchedulableWork.isEmpty()) {
       return SchedulableSyncPhase.empty();
@@ -239,6 +266,9 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     return multipartPlan.getInitPhase();
   }
 
+  /**
+   * update blockaliasmap for synctask
+   */
   private void finalizeTask(SyncTask syncTask, SyncTaskExecutionResult result) {
     LOG.info("Updating BlockAliasMap for {} : {}", syncTask.getUri(),
         syncTask.getOperation());
@@ -265,6 +295,9 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     }
   }
 
+  /**
+   * 将synctask中的block覆盖存储到aliasmap（block --> ProvidedStorageLocation（nonce））
+   */
   private void finalizeModifyFileTask(ModifyFileSyncTask syncTask, SyncTaskExecutionResult result) {
     Path filePath = new Path(syncTask.getUri());
     final ByteBuffer nonce = result.getResult();
@@ -284,7 +317,9 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
       offset += block.getNumBytes();
     }
   }
-
+  /**
+   * 将synctask中的block覆盖存储到aliasmap（block --> ProvidedStorageLocation（nonce））
+   */
   private void finalizeCreateFileTask(CreateFileSyncTask syncTask, SyncTaskExecutionResult result) {
     Path filePath = new Path(syncTask.getUri());
     final ByteBuffer nonce = result.getResult();
@@ -305,8 +340,12 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     }
   }
 
+  /**
+   * 调用fs的方法进行rename，并更新aliasmap
+   */
   private void finalizeRenameFileTask(RenameFileSyncTask syncTask) {
     try {
+      //TODO rename有问题？？
       Path filePath = new Path(syncTask.getUri());
       FileSystem fs = FileSystem.get(syncTask.renamedTo, config);
       Path renamedToPath = new Path(syncTask.renamedTo);
@@ -329,6 +368,9 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     }
   }
 
+  /**
+   * 直接在aliasmap删除对应的block
+   */
   private void finalizeDeleteFileTask(DeleteFileSyncTask syncTask) {
     for (Block block : syncTask.getBlocks()) {
       try {

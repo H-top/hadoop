@@ -37,6 +37,9 @@ import java.net.URI;
 import static org.apache.hadoop.hdfs.protocol.HdfsConstants.DOT_SNAPSHOT_DIR;
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.RemoteSyncURICreator.createRemotePathFromAbsolutePath;
 
+/**
+ * create plan，将plan放入FileAndDirsSyncTasks
+ */
 public class DirectoryPlanner {
 
   private static final Logger LOG =

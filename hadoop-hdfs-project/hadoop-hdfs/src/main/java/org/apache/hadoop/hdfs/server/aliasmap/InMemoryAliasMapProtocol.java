@@ -107,15 +107,6 @@ public interface InMemoryAliasMapProtocol {
    */
   void remove(@Nonnull Block block) throws IOException;
 
-  /**
-   * Removed the block and it's associated {@link ProvidedStorageLocation}
-   * from the alias map.
-   * As this is for in memory alias map, we do not require the bpid.
-   * @param block
-   * @throws IOException
-   */
-  void remove(@Nonnull Block block) throws IOException;
-
    /**
    * Get the associated block pool id.
    * @return the block pool id associated with the Namenode running

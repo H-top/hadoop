@@ -48,11 +48,16 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * 维护syncmount update tracker（一个syncmount对应一个tracker？）
+ */
 public class SyncMonitor {
 
   public static final Logger LOG = LoggerFactory.getLogger(SyncMonitor.class);
   private final Namesystem namesystem;
+  //syncmountid-->syncmount update tracker
   private Map<String, SyncMountSnapshotUpdateTracker> inProgress;
+  //维护failed tracker
   private Map<String, SyncMountSnapshotUpdateTracker> trackersFailed;
   private PhasedSyncMountSnapshotUpdateFactory syncMountSnapshotUpdatePlanFactory;
   private SyncTaskScheduler syncTaskScheduler;
@@ -71,6 +76,10 @@ public class SyncMonitor {
     this.namesystem = namesystem;
   }
 
+  /**
+   * 调用syncmount对应的SyncMountSnapshotUpdateTracker的markfailed方法标记synctask failed，
+   * if tracker is not still valid, 将tracker从inprogress放到trackersfailed，return false
+   */
   public boolean markSyncTaskFailed(UUID syncTaskId,
       String syncMountId,
       SyncTaskExecutionResult result) {
@@ -92,6 +101,10 @@ public class SyncMonitor {
         .orElse(false);
   }
 
+  /**
+   * 调用syncmount对应的SyncMountSnapshotUpdateTracker的markfinished方法标记synctask finished，
+   * if tracker is finished, 从inprogress中移除
+   */
   public void markSyncTaskFinished(UUID syncTaskId, String syncMountId,
       SyncTaskExecutionResult result) {
 
@@ -116,6 +129,9 @@ public class SyncMonitor {
     return !inProgress.isEmpty();
   }
 
+  /**
+   * 从inProgress获取syncmountid对应的SyncMountSnapshotUpdateTracker
+   */
   private Optional<SyncMountSnapshotUpdateTracker> fetchUpdateTracker(String syncMountId) {
     SyncMountSnapshotUpdateTracker syncMountSnapshotUpdateTracker =
         inProgress.get(syncMountId);
@@ -129,6 +145,10 @@ public class SyncMonitor {
     return Optional.of(syncMountSnapshotUpdateTracker);
   }
 
+  /**
+   * 遍历所有的sncmounts并schedule next work
+   * 如果inprogress中有对应的记录，则在相应的tracker上schedule；如果没有就新建一个tracker
+   */
   void scheduleNextWork() {
 
     MountManager mountManager = namesystem.getMountManager();
@@ -154,6 +174,9 @@ public class SyncMonitor {
     }
   }
 
+  /**
+   * 对syncmount进行full resync，创建新的tracker
+   */
   public void fullResync(String syncMountId, BlockAliasMap.Reader<FileRegion> aliasMapReader) throws IOException {
     MountManager mountManager = namesystem.getMountManager();
     SyncMount syncMount = mountManager.getSyncMount(syncMountId);
@@ -186,6 +209,10 @@ public class SyncMonitor {
     return syncMountSnapshotUpdateTracker.blockingCancel();
   }
 
+  /**
+   * 代表syncmount上有新schedule的work，新建一个tracker，并在该tracker上schedule work
+   * @param syncMount
+   */
   private void scheduleNewSyncMountSnapshotUpdate(SyncMount syncMount) {
 
     LOG.info("Planning new SyncMount {}", syncMount);
@@ -229,12 +256,23 @@ public class SyncMonitor {
     }
   }
 
+  /**
+   * 将tracker加入inprogress，然后获取tracker的SchedulableSyncPhase，并通过syncTaskScheduler进行schedule
+   */
   private void scheduleNextWorkOnTracker(SyncMountSnapshotUpdateTracker tracker, SyncMount syncMount) {
     inProgress.put(syncMount.getName(), tracker);
     SchedulableSyncPhase schedulableSyncPhase = tracker.getNextSchedulablePhase();
     syncTaskScheduler.schedule(schedulableSyncPhase);
   }
 
+  /**
+   * 从diffreport获取source snapshot id
+   * @param diffReport
+   * @return
+   * @throws UnresolvedLinkException
+   * @throws AccessControlException
+   * @throws ParentNotDirectoryException
+   */
   private Optional<Integer> getSourceSnapshotId(SnapshotDiffReport diffReport)
       throws UnresolvedLinkException, AccessControlException,
       ParentNotDirectoryException {
@@ -250,6 +288,14 @@ public class SyncMonitor {
     return Optional.of(toSnapshot.getId());
   }
 
+  /**
+   * 从diffreport获取target snapshot id
+   * @param diffReport
+   * @return
+   * @throws UnresolvedLinkException
+   * @throws AccessControlException
+   * @throws ParentNotDirectoryException
+   */
   private int getTargetSnapshotId(SnapshotDiffReport diffReport)
       throws UnresolvedLinkException, AccessControlException,
       ParentNotDirectoryException {

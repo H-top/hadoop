@@ -23,7 +23,7 @@ import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
 
 public class RemoteSyncURICreator {
-
+//remotelocation.append(相对路径)
   public static URI createRemotePath(SyncMount syncMount, String localPath) {
 
     if (".".equals(localPath) || "".equals(localPath)) {

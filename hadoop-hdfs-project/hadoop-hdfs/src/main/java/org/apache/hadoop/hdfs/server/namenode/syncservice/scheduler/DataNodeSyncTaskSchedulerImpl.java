@@ -26,7 +26,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
-
+/**
+ * 向DN schedule block sync task
+ */
 public class DataNodeSyncTaskSchedulerImpl implements DataNodeSyncTaskScheduler {
 
 
@@ -39,6 +41,9 @@ public class DataNodeSyncTaskSchedulerImpl implements DataNodeSyncTaskScheduler 
     this.blockManager = blockManager;
   }
 
+  /**
+   * 向DN schedule block sync task
+   */
   @Override
   public void scheduleOnDataNode(BlockSyncTask blockSyncTask) {
     if (blockSyncTask.getLocatedBlocks() != null

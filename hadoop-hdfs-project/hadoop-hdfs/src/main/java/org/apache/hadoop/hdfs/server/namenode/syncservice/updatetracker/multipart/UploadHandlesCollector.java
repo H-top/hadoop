@@ -34,6 +34,10 @@ public class UploadHandlesCollector {
     tasksToFinish.forEach(id -> uploadHandles.put(id, Optional.empty()));
   }
 
+  /**
+   * 如果map中已经存在id，则replace
+   * 那如果不存在就不add吗？？？
+   */
   public void addHandle(UUID id, ByteBuffer handle) {
     Optional<ByteBuffer> bytes = uploadHandles.get(id);
     if (bytes != null) {
@@ -41,6 +45,9 @@ public class UploadHandlesCollector {
     }
   }
 
+  /**
+   * 判断uploadHandles中的value是否都不为null
+   */
   public boolean allPresent() {
     return uploadHandles
         .values()
@@ -48,6 +55,9 @@ public class UploadHandlesCollector {
         .allMatch(Optional::isPresent);
   }
 
+  /**
+   * 获取uploadHandles中不为null的所有handle
+   */
   public List<ByteBuffer> getCollectedHandles() {
     return uploadHandles
         .values()

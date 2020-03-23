@@ -19,19 +19,17 @@ package org.apache.hadoop.hdfs.server.namenode.syncservice.planner;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.server.protocol.MetadataSyncTask;
 import org.apache.hadoop.hdfs.server.protocol.SyncTask;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PhasedPlan.Phases.CREATE_DIRS;
-import static org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PhasedPlan.Phases.CREATE_FILES;
-import static org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PhasedPlan.Phases.DELETES;
-import static org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PhasedPlan.Phases.FINISHED;
-import static org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PhasedPlan.Phases.RENAMES_TO_FINAL;
+import static org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PhasedPlan.Phases.*;
 
+/**
+ * 管理不同phase的SyncTask
+ */
 public class PhasedPlan {
 
   private List<SyncTask> renameToTemporaryName;
@@ -52,12 +50,18 @@ public class PhasedPlan {
     this.createFileSyncTasks = createFileSyncTasks;
   }
 
+  /**
+   * create an empty PhasedPlan
+   */
   public static PhasedPlan empty() {
     return new PhasedPlan(Collections.emptyList(), Collections.emptyList(),
         Collections.emptyList(), Collections.emptyList(),
         Collections.emptyList());
   }
 
+  /**
+   * pop all entries
+   */
   private static List<SyncTask> popList(List<SyncTask> memberList) {
     List<SyncTask> returnList = Lists.newArrayList(memberList);
     memberList.clear();
@@ -120,6 +124,9 @@ public class PhasedPlan {
         this.renameToTemporaryName.isEmpty();
   }
 
+  /**
+   * 判断downstream是否还有剩余的task
+   */
   public boolean hasNoDownstreamTasksLeft(Phases currentPhase) {
     switch (currentPhase) {
     case RENAMES_TO_TEMP:
@@ -139,6 +146,9 @@ public class PhasedPlan {
     }
   }
 
+  /**
+   * 根据path过滤createFileSyncTasks并覆盖原来的createFileSyncTasks
+   */
   public void filter(Path pathInAliasMap) {
     this.createFileSyncTasks =
         this.createFileSyncTasks
@@ -158,6 +168,9 @@ public class PhasedPlan {
         '}';
   }
 
+  /**
+   * 定义了phase的顺序
+   */
   public enum Phases {
     NOT_STARTED,
     RENAMES_TO_TEMP,

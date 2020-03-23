@@ -26,10 +26,14 @@ import java.util.function.IntPredicate;
 
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.updatetracker.CurrentTasksFactory.RetryStrategy.LIMITED;
 
+/**
+ * 用于创建CurrentTasks
+ */
 public class CurrentTasksFactory {
 
 
   private static final IntPredicate neverExpire = i -> false;
+  //返回一个判断输入是否大于threshold的函数
   private static final IntFunction<IntPredicate> thresholdExpire =
       threshold -> i -> {
         return i >= threshold;
@@ -39,6 +43,9 @@ public class CurrentTasksFactory {
     this.conf = conf;
   }
 
+  /**
+   * 创建CurrentTasks
+   */
   public <T extends TrackableTask> CurrentTasks<T> create(Collection<T> tasks) {
     RetryStrategy retryStrategy =
         conf.getEnum(DFSConfigKeys.DFS_SNAPSHOT_UPDATE_TRACKER_RETRY_STRATEGY,

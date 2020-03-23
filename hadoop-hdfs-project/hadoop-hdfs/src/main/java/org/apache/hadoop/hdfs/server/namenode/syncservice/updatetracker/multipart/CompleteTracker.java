@@ -26,8 +26,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * track complete metadata sync task
+ */
 public class CompleteTracker {
-
+//保存目前complete的task
   private CurrentTasks<MultipartCompleteMetadataSyncTask> currentCompleteTasks;
 
   public CompleteTracker(MultipartCompleteMetadataSyncTask completeMetadataSyncTask,
@@ -35,6 +38,9 @@ public class CompleteTracker {
     this.currentCompleteTasks = currentTasksFactory.create(completeMetadataSyncTask);
   }
 
+  /**
+   * sync task finished，remove from currentCompleteTasks
+   */
   public void markFinished(UUID syncTaskId, Runnable trackerFinalizer) {
     Optional<MultipartCompleteMetadataSyncTask> multipartCompleteMetadataSyncTask =
         this.currentCompleteTasks.markFinished(syncTaskId);
@@ -44,10 +50,16 @@ public class CompleteTracker {
     }
   }
 
+  /**
+   * 调用currentCompleteTasks的方法
+   */
   public boolean markFailed(UUID syncTaskId, SyncTaskExecutionResult result) {
     return this.currentCompleteTasks.markFailure(syncTaskId);
   }
 
+  /**
+   * 调用currentCompleteTasks的方法获取taskstodo
+   */
   public Optional<MetadataSyncTask> getComplete() {
     List<MultipartCompleteMetadataSyncTask> tasksToDo =
         this.currentCompleteTasks.getTasksToDo();

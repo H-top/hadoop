@@ -30,6 +30,9 @@ import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+/**
+ * track init metadata sync tasks
+ */
 public class InitTracker {
 
   private final CurrentTasksFactory currentTasksFactory;
@@ -48,6 +51,9 @@ public class InitTracker {
     this.currentTasksFactory = currentTasksFactory;
   }
 
+  /**
+   * 调用currentInitTasks的方法，if currentInitTasks finished, return PartsTracker
+   */
   public Optional<PartsTracker> markFinished(UUID syncTaskId, SyncTaskExecutionResult result) {
     currentInitTasks.markFinished(syncTaskId);
     if (currentInitTasks.isNotFinished()) {
@@ -64,10 +70,16 @@ public class InitTracker {
     }
   }
 
+  /**
+   * 调用currentInitTasks的方法
+   */
   public boolean markFailed(UUID syncTaskId, SyncTaskExecutionResult result) {
     return currentInitTasks.markFailure(syncTaskId);
   }
 
+  /**
+   * 调用currentInitTasks的方法获取tasktodo
+   */
   public Optional<MetadataSyncTask> getTasks() {
     List<MultipartInitMetadataSyncTask> tasksToDo =
         this.currentInitTasks.getTasksToDo();

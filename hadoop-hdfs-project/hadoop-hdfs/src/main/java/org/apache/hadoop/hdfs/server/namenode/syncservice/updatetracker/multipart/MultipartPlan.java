@@ -37,6 +37,10 @@ import java.util.stream.Stream;
 
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.updatetracker.multipart.phases.MultipartPhase.INIT_PHASE;
 
+/**
+ * 管理SingleMultipart list不同phase的plan，初始为INIT_PHASE
+ * 负责phase的转移，获取当前phase的task
+ */
 public class MultipartPlan {
 
   private static final Logger LOG = LoggerFactory
@@ -50,6 +54,9 @@ public class MultipartPlan {
     this.multipartPhase = INIT_PHASE;
   }
 
+  /**
+   * 将synctask转换为SingleMultipart，并创建MultipartPlan
+   */
   public static MultipartPlan create(List<CreateFileSyncTask> createFiles,
       CurrentTasksFactory currentTaskFactory,
       Function<SyncTask, Consumer<SyncTaskExecutionResult>> finalizer) {
@@ -62,6 +69,10 @@ public class MultipartPlan {
     return new MultipartPlan(multiparts);
   }
 
+  /**
+   * 如果current phase没有inprogress，则返回CurrentSchedulablePhase；
+   * 否则将multipartPhase设置为next phase，返回CurrentSchedulablePhase
+   */
   public SchedulableSyncPhase handlePhase() {
     if (isCurrentPhaseStillInProgress()) {
       return getCurrentSchedulablePhase();
@@ -71,6 +82,9 @@ public class MultipartPlan {
     }
   }
 
+  /**
+   * 获取multiparts中的init metadata task
+   */
   public SchedulableSyncPhase getInitPhase() {
     return SchedulableSyncPhase.createMeta(multiparts
         .stream()
@@ -80,6 +94,9 @@ public class MultipartPlan {
         .collect(Collectors.toList()));
   }
 
+  /**
+   * 调用SingleMultipart的方法
+   */
   public void markFinished(UUID syncTaskId, SyncTaskExecutionResult result) {
     LOG.info("Mark {} finished in MultipartPlan", syncTaskId);
     multiparts
@@ -87,12 +104,17 @@ public class MultipartPlan {
             multipartPhase));
   }
 
+  /**
+   * 判断是否所有的SingleMultipart都已经finish
+   */
   public boolean isFinished() {
     return multiparts
         .stream()
         .allMatch(SingleMultipart::isFinished);
   }
-
+  /**
+   * 调用SingleMultipart的方法
+   */
   public boolean markFailed(UUID syncTaskId, SyncTaskExecutionResult result) {
     return multiparts
         .stream()
@@ -100,6 +122,9 @@ public class MultipartPlan {
         .reduce(true, Boolean::logicalAnd);
   }
 
+  /**
+   * 创建block sync task的SchedulableSyncPhase
+   */
   private SchedulableSyncPhase getPutPartPhase() {
     List<BlockSyncTask> multipartsReady = multiparts
         .stream()
@@ -109,6 +134,9 @@ public class MultipartPlan {
     return SchedulableSyncPhase.createBlock(multipartsReady);
   }
 
+  /**
+   * 获取complete metadata task
+   */
   private SchedulableSyncPhase getCompletePhase() {
     return SchedulableSyncPhase.createMeta(multiparts
         .stream()
@@ -119,6 +147,9 @@ public class MultipartPlan {
     );
   }
 
+  /**
+   * 获取multipartPhase对应的SchedulableSyncPhase
+   */
   private SchedulableSyncPhase getCurrentSchedulablePhase() {
     switch (multipartPhase) {
     case INIT_PHASE:
@@ -132,6 +163,9 @@ public class MultipartPlan {
     }
   }
 
+  /**
+   * 判断current phase是否仍然inprogress
+   */
   private boolean isCurrentPhaseStillInProgress() {
     return multiparts
         .stream()

@@ -32,6 +32,9 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PROVIDED_BACKUP_INODEFILT
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PartitionedDiffReport.partition;
 import static org.apache.hadoop.util.ReflectionUtils.newInstance;
 
+/**
+ * 对PhasedPlanFactory的包装
+ */
 public class PhasedSyncMountSnapshotUpdateFactory {
 
   private static final Logger LOG =
@@ -55,6 +58,9 @@ public class PhasedSyncMountSnapshotUpdateFactory {
         directoryPlanner, conf);
   }
 
+  /**
+   * 从diffReport创建PhasedPlan
+   */
   public PhasedPlan createPlanFromDiffReport(SyncMount syncMount,
       SnapshotDiffReport diffReport, Optional<Integer> sourceSnapshotId,
       int targetSnapshotId) {

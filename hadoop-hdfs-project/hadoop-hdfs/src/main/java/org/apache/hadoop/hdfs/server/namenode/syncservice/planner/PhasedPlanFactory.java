@@ -26,7 +26,6 @@ import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport.DiffReportEntry;
 import org.apache.hadoop.hdfs.protocol.SyncMount;
 import org.apache.hadoop.hdfs.server.namenode.INodeFile;
 import org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PartitionedDiffReport.TranslatedEntry;
-import org.apache.hadoop.hdfs.server.protocol.MetadataSyncTask;
 import org.apache.hadoop.hdfs.server.protocol.SyncTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,13 +35,15 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.hadoop.hdfs.protocol.SnapshotDiffReport.DiffType.CREATE;
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.RemoteSyncURICreator.createRemotePath;
 
+/**
+ * 创建PhasedPlan的工厂类，从PartitionedDiffReport创建
+ */
 public class PhasedPlanFactory {
 
   private static final Logger LOG =
@@ -58,6 +59,9 @@ public class PhasedPlanFactory {
     this.directoryPlanner = directoryPlanner;
   }
 
+  /**
+   * 从PartitionedDiffReport创建对应的sync task，返回PhasedPlan（分组后的sync task由PhasedPlan封装）
+   */
   public PhasedPlan createFromPartitionedDiffReport(PartitionedDiffReport
       partitionedDiffReport, SyncMount syncMount, String sourceSnapshot,
       Optional<Integer> sourceSnapshotId, int targetSnapshotId) {
@@ -102,9 +106,13 @@ public class PhasedPlanFactory {
         createsSyncTasks.getFileTasks());
   }
 
+  /**
+   * 创建rename to temp name entries对应的sync task
+   */
   private List<SyncTask> createRenameToTemporaryNameSyncTasks(
       List<PartitionedDiffReport.RenameEntryWithTemporaryName> renames,
       SyncMount syncMount, String sourceSnapshot, int targetSnapshotId) {
+    //将renames转换为对应的sync task
     return renames.stream()
         .map(entry -> convertRenameToTempNameToSyncTask(entry, syncMount,
             sourceSnapshot, targetSnapshotId))
@@ -124,6 +132,9 @@ public class PhasedPlanFactory {
         .collect(Collectors.toList());
   }
 
+  /**
+   *由entryWithTempName创建rename sync task
+   */
   private Optional<SyncTask> convertRenameToTempNameToSyncTask(
       PartitionedDiffReport.RenameEntryWithTemporaryName entryWithTempName,
       SyncMount syncMount, String sourceSnapshot, int targetSnapshotId) {
@@ -149,6 +160,9 @@ public class PhasedPlanFactory {
         renameToRemoteURI, syncMount, sourceSnapshot, targetSnapshotId);
   }
 
+  /**
+   * 针对dir或file创建rename sync task
+   */
   private Optional<SyncTask> createRenameSyncTask(
       DiffReportEntry diffEntry,
       URI sourceRemoteURI, URI renameToRemoteURI, SyncMount syncMount,

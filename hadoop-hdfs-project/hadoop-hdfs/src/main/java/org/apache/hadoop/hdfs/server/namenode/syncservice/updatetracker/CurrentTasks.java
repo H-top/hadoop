@@ -29,9 +29,12 @@ import java.util.UUID;
 import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
+/**
+ * 保存所有目前存在的tasks
+ */
 public class CurrentTasks<T extends TrackableTask> {
   private static final Logger LOG = LoggerFactory.getLogger(CurrentTasks.class);
-
+  //Pair<taskid, try_times>
   final private Map<UUID, Pair<T, Integer>> toDo;
   final private Map<UUID, Pair<T, Integer>> inProgress;
   //Need to get this from config
@@ -48,8 +51,6 @@ public class CurrentTasks<T extends TrackableTask> {
   /**
    * mark a failure for a task. If it can still be retried, offer the task to
    * the to-do list again..
-   *
-   * @param uuid
    * @return true if the task will be retried or the item is not found.
    * Otherwise false.
    */
@@ -67,12 +68,18 @@ public class CurrentTasks<T extends TrackableTask> {
     return true;
   }
 
+  /**
+   * 从inprogress移除对应的task
+   */
   public Optional<T> markFinished(UUID uuid) {
     Pair<T, Integer> finishedPair = inProgress.remove(uuid);
     return (finishedPair == null) ?
         Optional.empty() : Optional.of(finishedPair.getLeft());
   }
 
+  /**
+   * 将task从todo转移到inprogress，并返回转移的task list
+   */
   public List<T> getTasksToDo() {
     return toDo.entrySet()
         .stream()

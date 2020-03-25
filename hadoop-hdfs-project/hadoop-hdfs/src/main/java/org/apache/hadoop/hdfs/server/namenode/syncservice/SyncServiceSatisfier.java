@@ -45,6 +45,9 @@ import java.util.function.Predicate;
 
 import static org.apache.hadoop.hdfs.server.protocol.SyncTaskExecutionOutcome.FINISHED_SUCCESSFULLY;
 
+/**
+ * Daemon线程类，每个线程schedule一次synctask（所有syncmount的task或者一次fullresync）
+ */
 public class SyncServiceSatisfier implements Runnable {
   public static final Logger LOG =
       LoggerFactory.getLogger(SyncServiceSatisfier.class);
@@ -116,6 +119,7 @@ public class SyncServiceSatisfier implements Runnable {
     if (syncServiceSatisfierThread == null) {
       return;
     }
+    //TODO needed??
     if (isRunning) {
       stop();
     }
@@ -136,6 +140,9 @@ public class SyncServiceSatisfier implements Runnable {
     }
   }
 
+  /**
+   * 调用syncmonitor的方法schedule task
+   */
   @VisibleForTesting
   public void scheduleOnce() throws IOException {
     String resyncSyncMountId = this.fullResyncQueue.poll();
@@ -180,6 +187,9 @@ public class SyncServiceSatisfier implements Runnable {
     this.manualMode = true;
   }
 
+  /**
+   * 调用syncmonitor的mark***方法处理feedback
+   */
   private void handleExecutionFeedback(SyncTaskExecutionOutcome outcome,
       Predicate<SyncTaskExecutionOutcome> isSuccessfulOutcome,
       UUID syncTaskId, String syncMountId,
@@ -192,6 +202,7 @@ public class SyncServiceSatisfier implements Runnable {
     } else {
       synchronized (syncMonitor) {
         boolean trackerStillRunning = this.syncMonitor.markSyncTaskFailed(syncTaskId, syncMountId, result);
+        //TODO
         if (!trackerStillRunning) {
           scheduleFullResync(syncMountId);
         }
@@ -199,10 +210,16 @@ public class SyncServiceSatisfier implements Runnable {
     }
   }
 
+  /**
+   * 将syncmount加入full resync queue
+   */
   private void scheduleFullResync(String syncMountId) {
     this.fullResyncQueue.add(syncMountId);
   }
 
+  /**
+   * 调用syncmonitor的方法cancel，然后schedule
+   */
   public boolean cancelCurrentAndScheduleFullResync(String syncMountId) {
     boolean cancelSuccessful = this.syncMonitor.blockingCancelTracker(syncMountId);
     if (cancelSuccessful) {

@@ -89,19 +89,6 @@ public class AliasMapProtocolServerSideTranslatorPB
   }
 
   @Override
-  public RemoveResponseProto remove(RpcController controller,
-      RemoveRequestProto request) throws ServiceException {
-    try {
-      Block toRemove =
-          PBHelperClient.convert(request.getKey());
-      aliasMap.remove(toRemove);
-      return VOID_REMOVE_RESPONSE;
-    } catch (IOException e) {
-      throw new ServiceException(e);
-    }
-  }
-
-  @Override
   public ReadResponseProto read(RpcController controller,
       ReadRequestProto request) throws ServiceException {
     try {

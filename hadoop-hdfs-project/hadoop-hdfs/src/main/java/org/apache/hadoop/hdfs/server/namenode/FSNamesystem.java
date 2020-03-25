@@ -113,7 +113,6 @@ import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.server.common.ECTopologyVerifier;
 import org.apache.hadoop.hdfs.server.common.ProvidedVolumeInfo;
 import org.apache.hadoop.hdfs.server.namenode.metrics.ReplicatedBlocksMBean;
-import org.apache.hadoop.hdfs.server.namenode.syncservice.MountManager;
 import org.apache.hadoop.hdfs.server.namenode.syncservice.SyncServiceSatisfier;
 import org.apache.hadoop.hdfs.server.protocol.BulkSyncTaskExecutionFeedback;
 import org.apache.hadoop.hdfs.server.protocol.SlowDiskReports;
@@ -486,7 +485,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
 
   private String nameserviceId;
 
-  private MountManager mountManager;
+  private org.apache.hadoop.hdfs.server.namenode.syncservice.MountManager mountManagersync;
 
   private volatile RollingUpgradeInfo rollingUpgradeInfo = null;
   /**
@@ -8716,8 +8715,8 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
     }
   }
 
-  public MountManager getMountManager() {
-    return mountManager;
+  public org.apache.hadoop.hdfs.server.namenode.syncservice.MountManager getMountManagerSync() {
+    return mountManagersync;
   }
 
   /**

@@ -16,9 +16,6 @@
  */
 package org.apache.hadoop.hdfs.server.namenode.syncservice.updatetracker.multipart.phases;
 
-/**
- * multipart phase的枚举类，各个phase之间有一定的顺序关系
- */
 public enum MultipartPhase {
   INIT_PHASE,
   PUT_PHASE,

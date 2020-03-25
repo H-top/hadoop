@@ -39,9 +39,6 @@ import static org.apache.hadoop.hdfs.protocol.SnapshotDiffReport.DiffType.DELETE
 import static org.apache.hadoop.hdfs.protocol.SnapshotDiffReport.DiffType.MODIFY;
 import static org.apache.hadoop.hdfs.protocol.SnapshotDiffReport.DiffType.RENAME;
 
-/**
- * 将snapshot diffreport分组
- */
 public class PartitionedDiffReport {
 
   private static final Comparator<? super DiffReportEntry>
@@ -87,12 +84,8 @@ public class PartitionedDiffReport {
     }
   }
 
-  /**
-   * 将diffReport中的entry分组，并将分组添加到对应的list中
-   */
   public static PartitionedDiffReport partition(SnapshotDiffReport diffReport,
       SyncServiceFileFilter syncServiceFileFilter) {
-    //将DiffReportEntry根据ResultingOperation分组
     Map<ResultingOperation, List<DiffReportEntry>> triagedMap =
         diffReport
             .getDiffList()
@@ -158,9 +151,6 @@ public class PartitionedDiffReport {
         renamedToTemps, diffReport, syncServiceFileFilter);
   }
 
-  /**
-   * 排序并将rename entry和temp name封装后返回
-   */
   @VisibleForTesting
   static List<RenameEntryWithTemporaryName>
   getRenameEntriesAndGenerateTemporaryNames(List<DiffReportEntry> renameEntries) {
@@ -171,20 +161,17 @@ public class PartitionedDiffReport {
         .collect(Collectors.toList());
   }
 
-  /**
-   * 返回转换为temporary name的entries
-   */
   static List<TranslatedEntry> handleEntries(DiffType diffType,
       BiFunction<DiffReportEntry, List<RenameEntryWithTemporaryName>,
           TranslatedEntry> translationFunction,
       List<RenameEntryWithTemporaryName> renamedToTemps,
       SnapshotDiffReport diffReport,
       SyncServiceFileFilter syncServiceFileFilter) {
-    //从diffReport过滤出diffType的DiffReportEntry
+
     List<DiffReportEntry> entries = diffReport.getDiffList().stream()
         .filter(diffReportEntry -> diffReportEntry.getType() == diffType)
         .collect(Collectors.toList());
-    //获取转换为temporary name后的entries
+
     List<TranslatedEntry> translatedEntries = entries
         .stream()
         .flatMap(entry -> {
@@ -200,12 +187,6 @@ public class PartitionedDiffReport {
     return translatedEntries;
   }
 
-  /**
-   * 返回转换为temporary name后的entry
-   * @param entry
-   * @param renamesWithRenameEntryWithTemporaryNames
-   * @return
-   */
   private static TranslatedEntry translateToTemporaryName(DiffReportEntry entry,
       List<RenameEntryWithTemporaryName> renamesWithRenameEntryWithTemporaryNames) {
 
@@ -245,12 +226,6 @@ public class PartitionedDiffReport {
         childPath.startsWith(parentPath);
   }
 
-  /**
-   * 转换为target name
-   * @param entry
-   * @param renamesWithRenameEntryWithTemporaryNames
-   * @return
-   */
   private static TranslatedEntry translateToTargetName(DiffReportEntry entry,
       List<RenameEntryWithTemporaryName> renamesWithRenameEntryWithTemporaryNames) {
 
@@ -290,16 +265,10 @@ public class PartitionedDiffReport {
     return createsFromRenames;
   }
 
-  /**
-   * enum
-   */
   public enum ResultingOperation {
     RENAME, CREATE, DELETE, NOOP
   }
 
-  /**
-   * 封装entry和temp name
-   */
   public static class RenameEntryWithTemporaryName {
 
     private DiffReportEntry entry;
@@ -319,9 +288,6 @@ public class PartitionedDiffReport {
     }
   }
 
-  /**
-   * 封装entry和translated name
-   */
   public static class TranslatedEntry {
     private DiffReportEntry entry;
     private String translatedName;
@@ -331,17 +297,11 @@ public class PartitionedDiffReport {
       this.translatedName = translatedName;
     }
 
-    /**
-     * entry + original name
-     */
     public static TranslatedEntry withNoRename(DiffReportEntry entry) {
       return new TranslatedEntry(entry,
           DFSUtil.bytes2String(entry.getSourcePath()));
     }
 
-    /**
-     * entry + tmpname
-     */
     public static TranslatedEntry withTemporaryName(DiffReportEntry entry,
         RenameEntryWithTemporaryName renameItem) {
       String originalName = DFSUtil.bytes2String(entry.getSourcePath());
@@ -358,9 +318,6 @@ public class PartitionedDiffReport {
       return new TranslatedEntry(entry, translatedName);
     }
 
-    /**
-     * entry + target name
-     */
     public static TranslatedEntry withTargetName(DiffReportEntry entry,
         RenameEntryWithTemporaryName renameItem) {
       String originalName = DFSUtil.bytes2String(entry.getSourcePath());

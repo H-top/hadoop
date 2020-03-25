@@ -28,6 +28,7 @@ import org.apache.hadoop.hdfs.server.blockmanagement.BlockPlacementPolicyDefault
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockPlacementPolicyRackFaultTolerant;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.impl.RamDiskReplicaLruTracker;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.impl.ReservedSpaceCalculator;
+import org.apache.hadoop.hdfs.server.namenode.syncservice.DefaultSyncServiceFileFilterImpl;
 import org.apache.hadoop.hdfs.server.namenode.mountmanager.BlockResolver;
 import org.apache.hadoop.hdfs.server.namenode.mountmanager.FixedBlockResolver;
 import org.apache.hadoop.hdfs.server.namenode.mountmanager.SingleUGIResolver;

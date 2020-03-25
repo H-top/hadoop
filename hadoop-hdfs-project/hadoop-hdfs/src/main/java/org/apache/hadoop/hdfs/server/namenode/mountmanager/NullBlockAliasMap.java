@@ -84,11 +84,6 @@ public class NullBlockAliasMap extends BlockAliasMap<FileRegion> {
       }
 
       @Override
-      public void remove(Block block) throws IOException {
-        // do nothing
-      }
-
-      @Override
       public void close() throws IOException {
         // do nothing
       }

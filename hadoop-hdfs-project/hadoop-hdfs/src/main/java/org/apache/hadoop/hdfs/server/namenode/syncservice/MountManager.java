@@ -86,7 +86,6 @@ public class MountManager implements Configurable {
 
   public MountManager(FSNamesystem fsNamesystem) {
     this.fsNamesystem = fsNamesystem;
-    //从snapshotable dir的xarrt中获取所有的syncmount
     this.syncMounts = findBackupDirsFromSnapshotDirs();
   }
 
@@ -110,9 +109,7 @@ public class MountManager implements Configurable {
   public String createBackup(SyncMount syncMountToCreate)
       throws MountException {
     try {
-      //enable mount dir的snapshot，并设置该dir的xattr（包含了syncmount的信息）
       setUpFileSystemForSnapshotting(syncMountToCreate);
-      //设置另一个xattr，因为是新建，value为：no_snapshot_yet（由此判定该路径下是否有改动？？？）
       storeBackingUpFromSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
           NO_FROM_SNAPSHOT_YET, CREATE);
 
@@ -128,7 +125,6 @@ public class MountManager implements Configurable {
 
   //TODO think this through. It does not seem like a good idea
   // to have they key change, but then where do we keep track of paused/resumed?
-  //修改syncmount pause标志，并重新加入到syncmounts
   public void pause(SyncMount syncMount) throws MountException {
     SyncTaskStats stats = syncMounts.remove(syncMount);
     if (stats != null) {
@@ -226,7 +222,7 @@ public class MountManager implements Configurable {
     syncMounts.remove(syncMount);
     return syncMount.getLocalPath().toString();
   }
-//TODO
+
   private void disconnect(SyncMount syncMount, DisconnectPolicy policy) {
     if (policy != DisconnectPolicy.GRACEFULLY) {
       throw new UnsupportedOperationException("TODO");
@@ -268,7 +264,6 @@ public class MountManager implements Configurable {
    * @param snapshotName
    * @return
    */
-  //代表两个snapshot之间的diff，这里是初始化diff
   private SnapshotDiffReport performInitialDiff(Path localBackupPath,
       String snapshotName) {
     List<DiffReportEntry> entryList = Lists.newArrayList();
@@ -278,19 +273,18 @@ public class MountManager implements Configurable {
     return new SnapshotDiffReport(
         localBackupPath.toString(), null, snapshotName, entryList);
   }
-//强制初始化snapshot
+
   public SnapshotDiffReport forceInitialSnapshot(Path localBackupPath) throws IOException {
     return makeSnapshotAndPerformDiffInternal(localBackupPath, NO_FROM_SNAPSHOT_YET);
 
   }
-//创建snapshot并获取diff
+
   public SnapshotDiffReport makeSnapshotAndPerformDiff(Path localBackupPath)
       throws IOException {
-    //获取path对应的snapshot name
     String fromSnapshotName = getBackingUpFromSnapshotName(localBackupPath);
     return makeSnapshotAndPerformDiffInternal(localBackupPath, fromSnapshotName);
   }
-//创建snapshot，将当前snapshot name设置到xattr，并比较与前一个snapshot的diff
+
   public SnapshotDiffReport makeSnapshotAndPerformDiffInternal(Path localBackupPath,
       String fromSnapshotName)
       throws IOException {
@@ -317,7 +311,7 @@ public class MountManager implements Configurable {
     //true);
 
   }
-//将snapshot name设置为xattr，从而跟踪dir snapshot name的变化
+
   private void storeBackingUpFromSnapshotNameAsXAttr(Path localBackupPath,
       String snapshotName, XAttrSetFlag action) {
     XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
@@ -379,7 +373,7 @@ public class MountManager implements Configurable {
 
   }
 
-//获取目录的syncmount
+
   public Optional<SyncMount> addPossibleLocalBackupDir(INode inode, int snapshotId) {
     List<XAttr> xAttrs = XAttrStorage.readINodeXAttrs(inode.getSnapshotINode(snapshotId));
     try {
@@ -396,7 +390,7 @@ public class MountManager implements Configurable {
     }
   }
 
-//获取目录的syncmount
+
   private Optional<SyncMount> getBackingDetailsFromXAttr(Path localBackupPath) {
     XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
         .setNameSpace(USER)
@@ -417,7 +411,7 @@ public class MountManager implements Configurable {
       return Optional.empty();
     }
   }
-//删除目录xattr中的syncmount
+
   private void removeBackingDetailsFromXAttr(Path localBackupPath) {
     XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
         .setNameSpace(USER)
@@ -430,7 +424,7 @@ public class MountManager implements Configurable {
       LOG.error("Could not remove XAttr for dir: {}", localBackupPath);
     }
   }
-//从所有snapshotable目录下获取所有的syncmount
+
   private Map<SyncMount, SyncTaskStats> findBackupDirsFromSnapshotDirs() {
     Map<SyncMount, SyncTaskStats> mountsAndStats = Maps.newConcurrentMap();
 
@@ -448,19 +442,19 @@ public class MountManager implements Configurable {
     }
     return mountsAndStats;
   }
-//将目录的syncmount添加到syncmounts
+
   public void addPossibleLocalBackupDir(String localDir) {
     Path path = new Path(localDir);
     getBackingDetailsFromXAttr(path).map(syncMount ->
         syncMounts.put(syncMount, SyncTaskStats.empty()));
   }
-//将目录的syncmount从syncmounts移除
+
   public void removePossibleLocalBackupDir(String localDir) {
     Path path = new Path(localDir);
     syncMounts.entrySet().removeIf(
         m -> m.getKey().getLocalPath().equals(path));
   }
-//update feedbacks
+
   public void updateStats(BulkSyncTaskExecutionFeedback
       bulkSyncTaskExecutionFeedback) {
     Collection<BlockSyncTaskExecutionFeedback> feedbacks =
@@ -476,14 +470,14 @@ public class MountManager implements Configurable {
     SyncTaskStats stat = statify(feedback);
     syncMounts.merge(key, stat, SyncTaskStats::append);
   }
-//append新的stat
+
   public synchronized void updateStats(BlockSyncTaskExecutionFeedback feedback) {
     String syncMountId = feedback.getSyncMountId();
     SyncMount key = findKey(syncMountId);
     SyncTaskStats stat = statify(feedback);
     syncMounts.merge(key, stat, SyncTaskStats::append);
   }
-//从syncmounts中获取syncmount
+
   private SyncMount findKey(String syncMountId) {
     List<SyncMount> matchings = syncMounts
         .keySet()
@@ -501,7 +495,7 @@ public class MountManager implements Configurable {
   private SyncTaskStats statify(MetadataSyncTaskExecutionFeedback feedback) {
     return SyncTaskStats.from(feedback);
   }
-//从feedback获取stat
+
   private SyncTaskStats statify(BlockSyncTaskExecutionFeedback feedback) {
     return SyncTaskStats.from(feedback);
   }

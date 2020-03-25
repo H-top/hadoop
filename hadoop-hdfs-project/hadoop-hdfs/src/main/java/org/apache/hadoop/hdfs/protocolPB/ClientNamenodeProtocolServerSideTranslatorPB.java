@@ -243,6 +243,7 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Update
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.UpdatePipelineResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.SatisfyStoragePolicyRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.SatisfyStoragePolicyResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.*;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.CreateEncryptionZoneResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.CreateEncryptionZoneRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.GetEZForPathResponseProto;
@@ -1945,41 +1946,41 @@ public class ClientNamenodeProtocolServerSideTranslatorPB implements
     return VOID_SATISFYSTORAGEPOLICY_RESPONSE;
   }
 
-  @Override
-  public SyncCreateToRemoteStoreResponseProto syncCreateToRemoteStore(
-      RpcController controller,
-      SyncCreateToRemoteStoreRequestProto request) throws ServiceException {
-    try {
-      server.syncCreateToRemoteStore(request.getSrc());
-    } catch (IOException e) {
-      throw new ServiceException(e);
-    }
-    return VOID_SYNCCREATETOREMOVESTORE_RESPONSE;
-  }
+//  @Override
+//  public SyncCreateToRemoteStoreResponseProto syncCreateToRemoteStore(
+//      RpcController controller,
+//      SyncCreateToRemoteStoreRequestProto request) throws ServiceException {
+//    try {
+//      server.syncCreateToRemoteStore(request.getSrc());
+//    } catch (IOException e) {
+//      throw new ServiceException(e);
+//    }
+//    return VOID_SYNCCREATETOREMOVESTORE_RESPONSE;
+//  }
 
-  @Override
-  public SyncRenameToRemoteStoreResponseProto syncRenameToRemoteStore(
-      RpcController controller,
-      SyncRenameToRemoteStoreRequestProto request) throws ServiceException {
-    try {
-      server.syncRenameToRemoteStore(request.getSrc(), request.getDest());
-    } catch (IOException e) {
-      throw new ServiceException(e);
-    }
-    return VOID_SYNCRENAMETOREMOVESTORE_RESPONSE;
-  }
+//  @Override
+//  public SyncRenameToRemoteStoreResponseProto syncRenameToRemoteStore(
+//      RpcController controller,
+//      SyncRenameToRemoteStoreRequestProto request) throws ServiceException {
+//    try {
+//      server.syncRenameToRemoteStore(request.getSrc(), request.getDest());
+//    } catch (IOException e) {
+//      throw new ServiceException(e);
+//    }
+//    return VOID_SYNCRENAMETOREMOVESTORE_RESPONSE;
+//  }
 
-  @Override
-  public SyncDeleteToRemoteStoreResponseProto syncDeleteToRemoteStore(
-      RpcController controller,
-      SyncDeleteToRemoteStoreRequestProto request) throws ServiceException {
-    try {
-      server.syncCreateToRemoteStore(request.getSrc());
-    } catch (IOException e) {
-      throw new ServiceException(e);
-    }
-    return VOID_SYNCDELETETOREMOVESTORE_RESPONSE;
-  }
+//  @Override
+//  public SyncDeleteToRemoteStoreResponseProto syncDeleteToRemoteStore(
+//      RpcController controller,
+//      SyncDeleteToRemoteStoreRequestProto request) throws ServiceException {
+//    try {
+//      server.syncCreateToRemoteStore(request.getSrc());
+//    } catch (IOException e) {
+//      throw new ServiceException(e);
+//    }
+//    return VOID_SYNCDELETETOREMOVESTORE_RESPONSE;
+//  }
 
   @Override
   public HAServiceStateResponseProto getHAServiceState(

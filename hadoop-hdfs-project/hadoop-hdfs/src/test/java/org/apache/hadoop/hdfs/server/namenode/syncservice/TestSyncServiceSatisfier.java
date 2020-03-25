@@ -64,7 +64,7 @@ public class TestSyncServiceSatisfier {
     String syncMountId = "mount";
     Path localPath = new Path("localPath");
     SyncMount syncMount = new SyncMount(syncMountId, localPath, new URI(""));
-    when(namesystemMock.getMountManager()).thenReturn(mountManagerMock);
+//    when(namesystemMock.getMountManager()).thenReturn(mountManagerMock);
     when(namesystemMock.getFSDirectory()).thenReturn(fsDirectoryMock);
     when(fsDirectoryMock.getINode(any())).thenReturn(iNodeMock);
     when(iNodeMock.asDirectory()).thenReturn(iNodeDirectoryMock);

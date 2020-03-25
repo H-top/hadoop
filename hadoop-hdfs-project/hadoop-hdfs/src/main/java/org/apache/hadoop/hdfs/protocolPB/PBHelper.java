@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.google.protobuf.ByteString;
 
@@ -498,8 +499,8 @@ public class PBHelper {
       return PBHelper.convert(proto.getBlkECReconstructionCmd());
     case ProvidedVolCommand:
       return PBHelper.convert(proto.getProvidedVolCmd());
-      case SyncCommand:
-        return PBHelper.convert(proto.getSyncCommand());
+    case SyncCommand:
+      return PBHelper.convert(proto.getSyncCommand());
     default:
       return null;
     }

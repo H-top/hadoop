@@ -54,9 +54,6 @@ public class BlockSyncTask implements TrackableTask {
     this.length = length;
   }
 
-  /**
-   * 返回一个函数，输入uploadHandle输出对应的BlockSyncTask
-   */
   public static Function<ByteBuffer, BlockSyncTask> multipartPut(
       URI uri, LocatedBlock locatedBlock, int partNumber, String syncMountId) {
     int offset = 0;

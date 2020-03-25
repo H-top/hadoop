@@ -22,7 +22,6 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockCollection;
 import org.apache.hadoop.hdfs.server.namenode.ha.HAContext;
-import org.apache.hadoop.hdfs.server.namenode.syncservice.MountManager;
 import org.apache.hadoop.hdfs.util.RwLock;
 
 /** Namesystem operations. */
@@ -43,8 +42,6 @@ public interface Namesystem extends RwLock, SafeMode {
 
   HAContext getHAContext();
 
-  MountManager getMountManager();
-
   /**
    * @return Whether the namenode is transitioning to active state and is in the
    *         middle of the starting active services.
@@ -55,6 +52,7 @@ public interface Namesystem extends RwLock, SafeMode {
    * @return the MountManager associated with the Namesystem
    */
   MountManager getMountManager();
+  org.apache.hadoop.hdfs.server.namenode.syncservice.MountManager getMountManagerSync();
 
   /**
    * Remove xAttr from the inode.

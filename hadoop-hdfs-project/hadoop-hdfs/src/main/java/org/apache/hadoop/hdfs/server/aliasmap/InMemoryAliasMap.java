@@ -187,12 +187,12 @@ public class InMemoryAliasMap implements InMemoryAliasMapProtocol,
   public String getBlockPoolId() {
     return blockPoolID;
   }
-
-  @Override
-  public void remove(@Nonnull Block block) throws IOException {
-    byte[] key = toBytes(block.getBlockId());
-    levelDb.delete(key);
-  }
+//
+//  @Override
+//  public void remove(@Nonnull Block block) throws IOException {
+//    byte[] key = toBytes(block.getBlockId());
+//    levelDb.delete(key);
+//  }
 
   public void close() throws IOException {
     levelDb.close();

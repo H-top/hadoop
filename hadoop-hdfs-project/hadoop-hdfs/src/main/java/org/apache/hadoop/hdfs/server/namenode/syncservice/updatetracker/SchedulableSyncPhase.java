@@ -22,9 +22,6 @@ import org.apache.hadoop.hdfs.server.protocol.MetadataSyncTask;
 
 import java.util.List;
 
-/**
- * 维护metadata和block sync task list
- */
 public class SchedulableSyncPhase {
 
   private final List<MetadataSyncTask> metadataSyncTaskList;

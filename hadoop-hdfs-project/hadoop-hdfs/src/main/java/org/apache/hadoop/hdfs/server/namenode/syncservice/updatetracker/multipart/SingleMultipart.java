@@ -39,9 +39,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * a SingleMultipart contains multi phases, 每个phase对应一个tracker
- */
 public class SingleMultipart {
 
   private static final Logger LOG = LoggerFactory
@@ -101,9 +98,6 @@ public class SingleMultipart {
     );
   }
 
-  /**
-   * 创建BlockSyncTask list
-   */
   private static List<BlockSyncTask> createParts(SyncTask.CreateFileSyncTask current,
       List<LocatedBlock> locatedBlocks, ByteBuffer uploadHandle) {
     List<BlockSyncTask> puts = Lists.newArrayList();
@@ -114,9 +108,6 @@ public class SingleMultipart {
     return puts;
   }
 
-  /**
-   * 创建BlockSyncTask
-   */
   private static BlockSyncTask createPart(SyncTask.CreateFileSyncTask current,
       List<LocatedBlock> locatedBlocks, ByteBuffer uploadHandle, int i) {
     return BlockSyncTask.multipartPut(

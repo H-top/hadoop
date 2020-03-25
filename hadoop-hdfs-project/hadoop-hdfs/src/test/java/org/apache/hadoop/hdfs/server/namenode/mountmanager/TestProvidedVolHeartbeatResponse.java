@@ -42,14 +42,7 @@ import org.apache.hadoop.hdfs.server.namenode.FSNamesystem;
 import org.apache.hadoop.hdfs.server.namenode.MountManager;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeAdapter;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeProtocol;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
-import org.apache.hadoop.hdfs.server.protocol.HeartbeatResponse;
-import org.apache.hadoop.hdfs.server.protocol.NNHAStatusHeartbeat;
-import org.apache.hadoop.hdfs.server.protocol.ProvidedVolumeCommand;
-import org.apache.hadoop.hdfs.server.protocol.SlowDiskReports;
-import org.apache.hadoop.hdfs.server.protocol.SlowPeerReports;
+import org.apache.hadoop.hdfs.server.protocol.*;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -520,7 +513,7 @@ public class TestProvidedVolHeartbeatResponse {
       doReturn(response).when(spyNN).sendHeartbeat(any(), any(), anyLong(),
           anyLong(), anyInt(), anyInt(), anyInt(), any(),
           anyBoolean(), any(SlowPeerReports.class),
-          any(SlowDiskReports.class));
+          any(SlowDiskReports.class), any(BulkSyncTaskExecutionFeedback.class));
     } finally {
       lock.writeLock().unlock();
     }
@@ -549,7 +542,7 @@ public class TestProvidedVolHeartbeatResponse {
       doReturn(response).when(spyNN).sendHeartbeat(any(), any(), anyLong(),
           anyLong(), anyInt(), anyInt(), anyInt(), any(),
           anyBoolean(), any(SlowPeerReports.class),
-          any(SlowDiskReports.class));
+          any(SlowDiskReports.class), any(BulkSyncTaskExecutionFeedback.class));
     } finally {
       lock.writeLock().unlock();
     }

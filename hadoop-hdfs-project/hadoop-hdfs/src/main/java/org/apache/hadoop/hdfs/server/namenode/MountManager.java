@@ -107,7 +107,7 @@ public class MountManager {
     }
   }
 
-  private MountManager(FSNamesystem fsn) {
+  public MountManager(FSNamesystem fsn) {
     rootTempDirectory = null;
     mountTempDirectoryPattern = null;
     namesystem = fsn;

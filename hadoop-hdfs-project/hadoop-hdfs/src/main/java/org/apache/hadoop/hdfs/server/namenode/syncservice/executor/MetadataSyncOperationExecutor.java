@@ -43,9 +43,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-/**
- * 将metadata sync到external storage？？？直接调用对应FS的方法
- */
+
 public class MetadataSyncOperationExecutor {
 
   public static final Logger LOG =
@@ -62,9 +60,6 @@ public class MetadataSyncOperationExecutor {
     return new MetadataSyncOperationExecutor(conf);
   }
 
-  /**
-   * 执行metadata sync task
-   */
   public SyncTaskExecutionResult execute(MetadataSyncTask metadataSyncTask) throws Exception {
     LOG.info("Executing MetadataSyncTask {} ({} on {})",
         metadataSyncTask.getSyncTaskId(), metadataSyncTask.getOperation(), metadataSyncTask.getUri());
@@ -112,12 +107,6 @@ public class MetadataSyncOperationExecutor {
     }
   }
 
-  /**
-   * 新建文件
-   * @param uri
-   * @return
-   * @throws IOException
-   */
   private SyncTaskExecutionResult doTouchFile(URI uri) throws IOException {
     FileSystem fs = FileSystem.get(uri, conf);
     Path filePath = new Path(uri);
@@ -125,12 +114,6 @@ public class MetadataSyncOperationExecutor {
     return SyncTaskExecutionResult.emptyResult();
   }
 
-  /**
-   * 调用MultipartUploader进行init
-   * @param uri
-   * @return
-   * @throws IOException
-   */
   private SyncTaskExecutionResult doMultiPartInit(URI uri) throws IOException {
     Path filePath = new Path(uri);
     FileSystem fs = FileSystem.get(uri, conf);
@@ -143,7 +126,7 @@ public class MetadataSyncOperationExecutor {
       List<ExtendedBlock> blocks, ByteBuffer uploadHandle, List<ByteBuffer> partHandles)
       throws IOException {
     Path filePath = new Path(uri);
-    //<int, PartHandle> pair
+
     Map<Integer, PartHandle> partList = IntStream
         .range(0, partHandles.size())
         .mapToObj(i -> Pair.of(i + 1, BBPartHandle.from(

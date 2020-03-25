@@ -25,6 +25,7 @@ import org.apache.hadoop.hdfs.NameNodeProxies;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import org.apache.hadoop.hdfs.protocol.ProvidedStorageLocation;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.*;
 import org.apache.hadoop.hdfs.server.aliasmap.InMemoryAliasMap;
 import org.apache.hadoop.hdfs.server.aliasmap.InMemoryAliasMapProtocol;
 import org.apache.hadoop.hdfs.server.common.FileRegion;
@@ -201,21 +202,6 @@ public class InMemoryAliasMapProtocolClientSideTranslatorPB
 
     try {
       rpcProxy.write(null, request);
-    } catch (ServiceException e) {
-      throw ProtobufHelper.getRemoteException(e);
-    }
-  }
-
-  @Override
-  public void remove(@Nonnull Block block) throws IOException {
-    RemoveRequestProto request =
-        RemoveRequestProto
-            .newBuilder()
-            .setKey(PBHelperClient.convert(block))
-            .build();
-
-    try {
-      rpcProxy.remove(null, request);
     } catch (ServiceException e) {
       throw ProtobufHelper.getRemoteException(e);
     }

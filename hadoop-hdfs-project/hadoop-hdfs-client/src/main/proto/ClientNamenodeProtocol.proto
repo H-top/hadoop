@@ -845,18 +845,18 @@ message SatisfyStoragePolicyRequestProto {
 message SatisfyStoragePolicyResponseProto {
 }
 
-message SyncCreateToRemoteStoreRequestProto {
-  required string src = 1;
-}
+//message SyncCreateToRemoteStoreRequestProto {
+//  required string src = 1;
+//}
 
-message SyncRenameToRemoteStoreRequestProto {
-  required string src = 1;
-  required string dest = 3;
-}
+//message SyncRenameToRemoteStoreRequestProto {
+//  required string src = 1;
+//  required string dest = 3;
+//}
 
-message SyncDeleteToRemoteStoreRequestProto {
-  required string src = 1;
-}
+//message SyncDeleteToRemoteStoreRequestProto {
+//  required string src = 1;
+//}
 
 message SyncCreateToRemoteStoreResponseProto {
 }
@@ -865,6 +865,9 @@ message SyncRenameToRemoteStoreResponseProto {
 }
 
 message SyncDeleteToRemoteStoreResponseProto {
+}
+
+message SyncToRemoteStoreResponseProto {
 }
 
 message SyncMountProto {
@@ -1106,12 +1109,12 @@ service ClientNamenodeProtocol {
       returns(MsyncResponseProto);
   rpc satisfyStoragePolicy(SatisfyStoragePolicyRequestProto)
       returns(SatisfyStoragePolicyResponseProto);
-  rpc syncCreateToRemoteStore(SyncCreateToRemoteStoreRequestProto)
-      returns (SyncCreateToRemoteStoreResponseProto);
-  rpc syncRenameToRemoteStore(SyncRenameToRemoteStoreRequestProto)
-      returns (SyncRenameToRemoteStoreResponseProto);
-  rpc syncDeleteToRemoteStore(SyncDeleteToRemoteStoreRequestProto)
-      returns (SyncDeleteToRemoteStoreResponseProto);
+//  rpc syncCreateToRemoteStore(SyncCreateToRemoteStoreRequestProto)
+//      returns (SyncCreateToRemoteStoreResponseProto);
+//  rpc syncRenameToRemoteStore(SyncRenameToRemoteStoreRequestProto)
+//      returns (SyncRenameToRemoteStoreResponseProto);
+//  rpc syncDeleteToRemoteStore(SyncDeleteToRemoteStoreRequestProto)
+//      returns (SyncDeleteToRemoteStoreResponseProto);
   rpc getHAServiceState(HAServiceStateRequestProto)
       returns(HAServiceStateResponseProto);
   rpc addMount(AddMountRequestProto)

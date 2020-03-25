@@ -24,9 +24,6 @@ import org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PhasedPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * 用于创建不同实现的SyncMountSnapshotUpdateTracker
- */
 public class SyncMountSnapshotUpdateTrackerFactory {
   private static final Logger LOG = LoggerFactory
       .getLogger(SyncMountSnapshotUpdateTrackerFactory.class);

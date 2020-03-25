@@ -27,6 +27,7 @@ import org.apache.hadoop.hdfs.server.blockmanagement.BlockManager;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeFile;
 import org.apache.hadoop.hdfs.server.namenode.Namesystem;
+import org.apache.hadoop.hdfs.server.protocol.MetadataSyncTask;
 import org.apache.hadoop.hdfs.server.protocol.SyncTask;
 import org.apache.hadoop.security.AccessControlException;
 
@@ -34,6 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.RemoteSyncURICreator.createRemotePathFromAbsolutePath;
@@ -49,9 +51,6 @@ public class FilePlanner {
     this.blockManager = blockManager;
   }
 
-  /**
-   * 获取SnapshotDiffReport.DiffReportEntry的path
-   */
   private static byte[] getNodePath(SnapshotDiffReport.DiffReportEntry dre) {
     if (dre.getTargetPath() != null) {
       return dre.getTargetPath();
@@ -60,9 +59,6 @@ public class FilePlanner {
     }
   }
 
-  /**
-   * 创建新建文件的sync task
-   */
   public SyncTask createPlanTreeNodeForCreatedFile(SyncMount syncMount,
       int targetSnapshotId, SnapshotDiffReport.DiffReportEntry entry,
       URI sourceRemoteURI) throws IOException {
@@ -77,9 +73,7 @@ public class FilePlanner {
           iNodeFile, syncMount);
     }
   }
-  /**
-   * 获取entry的INodeFile
-   */
+
   INodeFile getINodeFile4Snapshot(SyncMount syncMount, String snapshot,
       SnapshotDiffReport.DiffReportEntry entry)
       throws UnresolvedLinkException, AccessControlException,
@@ -91,9 +85,6 @@ public class FilePlanner {
     return node.asFile();
   }
 
-  /**
-   * 获取entry的INodeFile
-   */
   INodeFile getINodeFile(SyncMount syncMount,
       SnapshotDiffReport.DiffReportEntry entry)
       throws UnresolvedLinkException, AccessControlException,

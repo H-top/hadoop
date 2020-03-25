@@ -26,10 +26,6 @@ import org.apache.hadoop.hdfs.server.protocol.MetadataSyncTaskExecutionFeedback;
 
 import java.util.function.Consumer;
 
-/**
- * 包含NameNodeSyncTaskScheduler和DataNodeSyncTaskScheduler，
- * 并schedule相应的synctask
- */
 public class SyncTaskSchedulerImpl implements SyncTaskScheduler {
 
   private NameNodeSyncTaskScheduler nameNodeSyncTaskScheduler;
@@ -46,9 +42,6 @@ public class SyncTaskSchedulerImpl implements SyncTaskScheduler {
         new DataNodeSyncTaskSchedulerImpl(blockManager);
   }
 
-  /**
-   * 从SchedulableSyncPhase中获取metadata和block sync task，并schedule相应的task
-   */
   @Override
   public void schedule(SchedulableSyncPhase schedulableSyncPhase) {
     for (MetadataSyncTask metadataSyncTask :

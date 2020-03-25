@@ -30,7 +30,15 @@ import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-import static org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation.*;
+import static org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation.CREATE_DIRECTORY;
+import static org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation.DELETE_DIRECTORY;
+import static org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation.DELETE_FILE;
+import static org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation.MODIFY_FILE;
+import static org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation.MULTIPART_INIT;
+import static org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation.MULTIPART_COMPLETE;
+import static org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation.RENAME_DIRECTORY;
+import static org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation.RENAME_FILE;
+import static org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation.TOUCH_FILE;
 
 
 /**
@@ -131,9 +139,6 @@ public abstract class MetadataSyncTask implements TrackableTask {
       this.blockCollectionId = blockCollectionId;
     }
 
-    /**
-     * update uploadHandle and partHandles
-     */
     public void update(SyncTaskExecutionResult syncTaskExecutionResult,
         List<SyncTaskExecutionResult> parallelSyncTaskExecutionResults) {
       uploadHandle = syncTaskExecutionResult.getResult();
@@ -162,31 +167,19 @@ public abstract class MetadataSyncTask implements TrackableTask {
     }
   }
 
-  /**
-   * 输入TouchFileSyncTask，返回TouchFileMetadataSyncTask
-   */
   public static MetadataSyncTask touchFile(TouchFileSyncTask syncTask) {
     return new TouchFileMetadataSyncTask(syncTask.getSyncTaskId(),
         syncTask.getUri(), syncTask.getSyncMountId());
   }
 
-  /**
-   * 创建TouchFileMetadataSyncTask
-   */
   public static MetadataSyncTask touchFile(UUID syncTaskId, URI uri, String syncMountId) {
     return new TouchFileMetadataSyncTask(syncTaskId, uri, syncMountId);
   }
 
-  /**
-   * 创建MultipartInitMetadataSyncTask
-   */
   public static MetadataSyncTask createFileMultipartInit(URI uri, String syncMountId) {
     return new MultipartInitMetadataSyncTask(UUID.randomUUID(), uri, syncMountId);
   }
 
-  /**
-   * 返回一个function，输入uploadhandle和parhandles，输出MultipartCompleteMetadataSyncTask
-   */
   public static BiFunction<ByteBuffer, List<ByteBuffer>, MultipartCompleteMetadataSyncTask>
     multipartComplete(URI uri, List<ExtendedBlock> blocks, String syncMountId,
       long blockCollectionId) {
@@ -201,73 +194,52 @@ public abstract class MetadataSyncTask implements TrackableTask {
             blockCollectionId);
   }
 
-  /**
-   * 创建DeleteFileMetadataSyncTask
-   */
   public static MetadataSyncTask deleteFile(DeleteFileSyncTask syncTask) {
     return new DeleteFileMetadataSyncTask(syncTask.getSyncTaskId(),
         syncTask.getUri(), syncTask.getBlocks(), syncTask.getSyncMountId());
   }
-  /**
-   * 创建DeleteFileMetadataSyncTask
-   */
+
   public static MetadataSyncTask deleteFile(UUID syncTaskId, URI uri,
       List<Block> blocks, String syncMountId) {
     return new DeleteFileMetadataSyncTask(syncTaskId, uri, blocks,
         syncMountId);
   }
 
-  /**
-   * 创建RenameFileMetadataSyncTask
-   */
   public static MetadataSyncTask renameFile(RenameFileSyncTask syncTask) {
     return new RenameFileMetadataSyncTask(syncTask.getSyncTaskId(),
         syncTask.getUri(), syncTask.getRenamedTo(), syncTask.blocks,
         syncTask.getSyncMountId());
   }
-  /**
-   * 创建RenameFileMetadataSyncTask
-   */
+
   public static MetadataSyncTask renameFile(UUID syncTaskId, URI uri,
       URI renamedTo, List<Block> blocks, String syncMountId) {
     return new RenameFileMetadataSyncTask(syncTaskId, uri, renamedTo,
         blocks, syncMountId);
   }
 
-  /**
-   * 创建CreateDirectoryMetadataSyncTask
-   */
   public static CreateDirectoryMetadataSyncTask createDirectory(
       CreateDirectorySyncTask syncTask) {
     return new CreateDirectoryMetadataSyncTask(syncTask.getSyncTaskId(),
         syncTask.getUri(), syncTask.getSyncMountId());
   }
-  /**
-   * 创建DeleteDirectoryMetadataSyncTask
-   */
+
   public static MetadataSyncTask deleteDirectory(
       DeleteDirectorySyncTask syncTask) {
     return new DeleteDirectoryMetadataSyncTask(syncTask.getSyncTaskId(),
         syncTask.getUri(), syncTask.getSyncMountId());
   }
-  /**
-   * 创建DeleteDirectoryMetadataSyncTask
-   */
+
   public static MetadataSyncTask deleteDirectory(UUID syncTaskId, URI uri,
       String syncMountId) {
     return new DeleteDirectoryMetadataSyncTask(syncTaskId, uri, syncMountId);
   }
-  /**
-   * 创建RenameDirectoryMetadataSyncTask
-   */
+
   public static MetadataSyncTask renameDirectory(
       RenameDirectorySyncTask syncTask) {
     return new RenameDirectoryMetadataSyncTask(syncTask.getSyncTaskId(),
         syncTask.getUri(), syncTask.getRenamedTo(), syncTask.getSyncMountId());
   }
-  /**
-   * 创建RenameDirectoryMetadataSyncTask
-   */
+
   public static MetadataSyncTask renameDirectory(UUID syncTaskId, URI uri,
       URI renamedTo, String syncMountId) {
     return new RenameDirectoryMetadataSyncTask(syncTaskId, uri, renamedTo, syncMountId);

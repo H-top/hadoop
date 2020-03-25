@@ -3664,6 +3664,10 @@ public class DataNode extends ReconfigurableBase
     return getDiskBalancer().queryWorkStatus();
   }
 
+  public SyncServiceSatisfierDatanodeWorker getSyncServiceSatisfierDatanodeWorker() {
+    return syncServiceSatisfierDatanodeWorker;
+  }
+
   /**
    * Gets a runtime configuration value from  diskbalancer instance. For
    * example : DiskBalancer bandwidth.
@@ -3740,10 +3744,6 @@ public class DataNode extends ReconfigurableBase
       throw new IOException("DiskBalancer is not initialized");
     }
     return this.diskBalancer;
-  }
-
-  public SyncServiceSatisfierDatanodeWorker getSyncServiceSatisfierDatanodeWorker() {
-    return syncServiceSatisfierDatanodeWorker;
   }
 
 }

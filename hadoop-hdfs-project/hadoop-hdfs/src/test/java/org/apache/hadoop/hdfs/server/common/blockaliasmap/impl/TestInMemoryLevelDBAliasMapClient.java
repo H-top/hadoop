@@ -47,6 +47,7 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_SERVICE_RPC_BIND_HOST_KEY;
+import static org.apache.hadoop.test.LambdaTestUtils.assertOptionalUnset;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.*;
 

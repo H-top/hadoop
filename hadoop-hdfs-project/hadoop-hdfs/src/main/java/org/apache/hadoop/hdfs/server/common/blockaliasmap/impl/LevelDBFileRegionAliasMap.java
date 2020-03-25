@@ -266,11 +266,11 @@ public class LevelDBFileRegionAliasMap
       db.delete(key);
     }
 
-    @Override
-    public void remove(Block block) throws IOException {
-      byte[] key = toProtoBufBytes(block);
-      db.delete(key);
-    }
+//    @Override
+//    public void remove(Block block) throws IOException {
+//      byte[] key = toProtoBufBytes(block);
+//      db.delete(key);
+//    }
 
     @Override
     public void close() throws IOException {

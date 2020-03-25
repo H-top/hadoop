@@ -181,9 +181,6 @@ public abstract class SyncTask implements TrackableTask {
     }
   }
 
-  /**
-   * 创建CreateFileSyncTask
-   */
   public static SyncTask createFile(URI uri,
       String syncMountId,
       List<LocatedBlock> locatedBlocks,
@@ -195,45 +192,33 @@ public abstract class SyncTask implements TrackableTask {
             locatedBlocks,
             blockCollectionId);
   }
-  /**
-   * 创建TouchFileSyncTask
-   */
+
   public static SyncTask touchFile(URI uri, String syncMountId, long blockCollectionId) {
     return new TouchFileSyncTask(UUID.randomUUID(), uri, syncMountId, blockCollectionId);
   }
 
-  /**
-   * 创建DeleteFileSyncTask
-   */
+
   public static SyncTask deleteFile(URI uri,
       List<Block> blocks, String syncMountId) {
     return new DeleteFileSyncTask(UUID.randomUUID(), uri, blocks,
         syncMountId);
   }
-  /**
-   * 创建RenameFileSyncTask
-   */
+
   public static SyncTask renameFile(URI uri, URI renamedTo,
       List<Block> blocks, String syncMountId) {
     return new RenameFileSyncTask(UUID.randomUUID(), uri, renamedTo,
         blocks, syncMountId);
   }
-  /**
-   * 创建CreateDirectorySyncTask
-   */
+
   public static CreateDirectorySyncTask createDirectory(URI uri, String syncMountId) {
     return new CreateDirectorySyncTask(UUID.randomUUID(), uri, syncMountId);
   }
-  /**
-   * 创建DeleteDirectorySyncTask
-   */
+
   public static DeleteDirectorySyncTask deleteDirectory(URI uri,
       String syncMountId) {
     return new DeleteDirectorySyncTask(UUID.randomUUID(), uri, syncMountId);
   }
-  /**
-   * 创建RenameDirectorySyncTask
-   */
+
   public static RenameDirectorySyncTask renameDirectory(URI uri, URI renamedTo,
       String syncMountId) {
     return new RenameDirectorySyncTask(UUID.randomUUID(), uri, renamedTo, syncMountId);

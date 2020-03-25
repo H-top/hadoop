@@ -51,10 +51,6 @@ public class PartsTracker {
     this.currentTasksFactory = currentTasksFactory;
   }
 
-  /**
-   * 调用CurrentTasks的方法mark finish，并将task handle添加到uploadHandlesCollector，
-   * 并将uploadHandlesCollector中的handle加入到CompleteTracker
-   */
   public Optional<CompleteTracker> markFinished(UUID syncTaskId, SyncTaskExecutionResult result) {
     this.currentPutPartTasks.markFinished(syncTaskId);
     this.uploadHandlesCollector.addHandle(syncTaskId, result.getResult());

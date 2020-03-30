@@ -72,6 +72,8 @@ public class PhasedPlanFactory {
 
     // We can't delete if we don't have a source snapshot.
     FileAndDirsSyncTasks deleteSyncTasks;
+    //如果没有sourceSnapshot，说明是init diffreport，不会有delete entry
+    //但是有必要额外判断一下吗？
     if (sourceSnapshotId.isPresent()) {
       deleteSyncTasks = createDeleteSyncTasks(
           partitionedDiffReport.getDeletes(), syncMount,
@@ -83,14 +85,15 @@ public class PhasedPlanFactory {
     List<SyncTask> renameToFinalName =
         createRenameToFinalNameSyncTasks(partitionedDiffReport.getRenames(),
             syncMount, sourceSnapshot, targetSnapshotId);
+    //TODO 为什么需要将tmp-->target的rename entry反向
     Collections.reverse(renameToFinalName);
-
+    //对于diffreport为RENAME，但是实际操作为CREATE的entry，需要额外处理，不过总体和createCreateSyncTasks类似
     FileAndDirsSyncTasks createsSyncTasks = createCreatesFromRenamesSyncTasks(
         partitionedDiffReport.getCreatesFromRenames(), syncMount,
         targetSnapshotId);
     createsSyncTasks.append(createCreateSyncTasks(
         partitionedDiffReport.getCreates(), syncMount, targetSnapshotId));
-
+    //不处理dir的modify操作，modify操作被视为create操作（为了幂等） TODO 不需要先delete再modify？
     List<SyncTask> modifiedSyncTasks = createModifiedSyncTasks(
         partitionedDiffReport.getModifies(), syncMount, targetSnapshotId);
 
@@ -108,6 +111,8 @@ public class PhasedPlanFactory {
 
   /**
    * 创建rename to temp name entries对应的sync task
+   * 与{@link PhasedPlanFactory#createRenameToFinalNameSyncTasks} 有关系
+   * source-->tmp--target
    */
   private List<SyncTask> createRenameToTemporaryNameSyncTasks(
       List<PartitionedDiffReport.RenameEntryWithTemporaryName> renames,
@@ -120,7 +125,9 @@ public class PhasedPlanFactory {
         .map(Optional::get)
         .collect(Collectors.toList());
   }
-
+  /**
+   * 创建rename to temp name entries对应的sync task
+   */
   private List<SyncTask> createRenameToFinalNameSyncTasks(
       List<PartitionedDiffReport.RenameEntryWithTemporaryName> renames,
       SyncMount syncMount, String sourceSnapshot, int targetSnapshotId) {
@@ -134,6 +141,7 @@ public class PhasedPlanFactory {
 
   /**
    *由entryWithTempName创建rename sync task
+   * source-->tmp
    */
   private Optional<SyncTask> convertRenameToTempNameToSyncTask(
       PartitionedDiffReport.RenameEntryWithTemporaryName entryWithTempName,
@@ -147,7 +155,10 @@ public class PhasedPlanFactory {
         renameToRemoteURI, syncMount, sourceSnapshot, targetSnapshotId);
   }
 
-
+  /**
+   *由entryWithTempName创建rename sync task
+   * tmp-->target
+   */
   private Optional<SyncTask> convertRenameToFinalToSyncTask(
       PartitionedDiffReport.RenameEntryWithTemporaryName entryWithTempName,
       SyncMount syncMount, String sourceSnapshot, int targetSnapshotId) {
@@ -161,7 +172,7 @@ public class PhasedPlanFactory {
   }
 
   /**
-   * 针对dir或file创建rename sync task
+   * 对diffEntry针对dir或file创建rename sync task
    */
   private Optional<SyncTask> createRenameSyncTask(
       DiffReportEntry diffEntry,
@@ -171,6 +182,7 @@ public class PhasedPlanFactory {
       return Optional.of(
           SyncTask.renameDirectory(sourceRemoteURI,
               renameToRemoteURI, syncMount.getName()));
+      //从fileplanner获取blocks
     } else if (diffEntry.getInodeType() == SnapshotDiffReport.INodeType.FILE) {
       try {
         INodeFile iNodeFile = filePlanner.getINodeFile(syncMount, diffEntry);
@@ -248,6 +260,9 @@ public class PhasedPlanFactory {
     return plan;
   }
 
+  /**
+   * 为entry创建file和dir synctask
+   */
   @VisibleForTesting
   FileAndDirsSyncTasks createCreateSyncTaskTree(TranslatedEntry createEntry,
       SyncMount syncMount, int targetSnapshotId) {
@@ -277,10 +292,15 @@ public class PhasedPlanFactory {
     }
   }
 
+  /**
+   * 为entry创建file和dir synctask
+   * 如果from不需要sync而target需要sync，实际的操作就是CREATE，
+   * 对于dir，在diffreport中只对应一条rename entry，所以需要对其子目录递归创建synctask
+   */
   private FileAndDirsSyncTasks createCreatesFromRenamesSyncTasks(
       List<DiffReportEntry> createsFromRenames, SyncMount syncMount,
       int targetSnapshotId) {
-
+    //原来entry为RENAME，将entry difftype设置为CREATE
     List<DiffReportEntry> createEntries = createsFromRenames.stream()
         .map(diffEntry -> new DiffReportEntry(diffEntry.getInodeType(), CREATE,
             diffEntry.getTargetPath()))
@@ -312,7 +332,9 @@ public class PhasedPlanFactory {
     return plan;
 
   }
-
+  /**
+   * 为entry创建modify synctask
+   */
   private List<SyncTask> createModifiedSyncTasks(List<TranslatedEntry> modifies,
       SyncMount syncMount, int targetSnapshotId) {
 
@@ -332,6 +354,9 @@ public class PhasedPlanFactory {
    * inadequate for a system that may need to retry writes.
    */
 
+  /**
+   * 为entry创建modify synctask
+   */
   @VisibleForTesting
   Optional<SyncTask> createModifiedSyncTask(TranslatedEntry modifiedEntry,
       SyncMount syncMount, int targetSnapshotId) {

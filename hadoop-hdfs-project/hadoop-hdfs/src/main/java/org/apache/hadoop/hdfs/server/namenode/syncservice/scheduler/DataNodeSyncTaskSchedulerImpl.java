@@ -54,6 +54,10 @@ public class DataNodeSyncTaskSchedulerImpl implements DataNodeSyncTaskScheduler 
     }
   }
 
+  /**
+   * 向第一个DN schedule BlockSyncTask
+   * datanodeDescriptor.scheduleSyncTaskOnHeartbeat(blockSyncTask)
+   */
   private void scheduleOnFirstBlockDatanode(BlockSyncTask blockSyncTask) {
     Iterable<DatanodeStorageInfo> storages = blockManager
         .getStorages(blockSyncTask.getLocatedBlocks().get(0)
@@ -72,6 +76,9 @@ public class DataNodeSyncTaskSchedulerImpl implements DataNodeSyncTaskScheduler 
     }
   }
 
+  /**
+   * 在一个随机的DN上schedule BlockSyncTask
+   */
   private void scheduleOnRandomDatanode(BlockSyncTask blockSyncTask) {
     Optional<DatanodeDescriptor> randomDatanodeDescriptor =
         blockManager.getDatanodeManager().getDatanodes().stream()

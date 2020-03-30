@@ -70,7 +70,7 @@ public class MultipartPlan {
   }
 
   /**
-   * 如果current phase没有inprogress，则返回CurrentSchedulablePhase；
+   * 如果current phase没有inprogress，则返回CurrentSchedulablePhase(currenttask没finish不进入下一个phase)；
    * 否则将multipartPhase设置为next phase，返回CurrentSchedulablePhase
    */
   public SchedulableSyncPhase handlePhase() {

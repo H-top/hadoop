@@ -98,6 +98,7 @@ public class PhasedPlan {
    * TODO Popping the lists might make our phases enum useless, in hindsight.
    * Consider this. Need to find something for the decision whether we are in the
    * create files phase and need to create a multipart plan when we do that.
+   * 从对应的synctask list中获取synctask
    */
   public List<SyncTask> popNextSchedulableWork(Phases currentPhase) {
     switch (currentPhase) {

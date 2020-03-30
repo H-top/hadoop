@@ -68,6 +68,10 @@ public class PartitionedDiffReport {
     this.createsFromRenames = createsFromRenames;
   }
 
+  /**
+   * 对于rename操作，如果source或者target被filter掉了，那么实际的operation不是rename
+   * 可能是create、delete、rename
+   */
   public static ResultingOperation determineResultingOperation(
       DiffReportEntry diffReportEntry,
       SyncServiceFileFilter syncServiceFileFilter) {
@@ -88,11 +92,14 @@ public class PartitionedDiffReport {
   }
 
   /**
-   * 将diffReport中的entry分组，并将分组添加到对应的list中
+   * 将diffReport中的entry按照实际操作类型分组，并将分组添加到对应的list中
+   * rename entry需要额外处理
    */
   public static PartitionedDiffReport partition(SnapshotDiffReport diffReport,
       SyncServiceFileFilter syncServiceFileFilter) {
-    //将DiffReportEntry根据ResultingOperation分组
+    //将DiffReportEntry中的RENAME根据ResultingOperation分组，将rename操作变为实际的操作
+    // TODO triagedMap中的DELETE entry不需要操作??
+    //是否需要将该操作sync到s3？？目前是没有？？
     Map<ResultingOperation, List<DiffReportEntry>> triagedMap =
         diffReport
             .getDiffList()
@@ -100,13 +107,13 @@ public class PartitionedDiffReport {
             .filter(diffReportEntry -> diffReportEntry.getType() == RENAME)
             .collect(Collectors.groupingBy(diffReportEntry ->
                 determineResultingOperation(diffReportEntry, syncServiceFileFilter)));
-
+    //真正的rename entry
     List<DiffReportEntry> renames = triagedMap.getOrDefault(ResultingOperation.RENAME,
         Collections.emptyList());
     List<RenameEntryWithTemporaryName> renameEntries =
         getRenameEntriesAndGenerateTemporaryNames(
             renames);
-
+    //处理不同类型的entry
     List<TranslatedEntry> translatedDeletes =
         handleDeletes(renameEntries,
             diffReport, syncServiceFileFilter);
@@ -159,7 +166,7 @@ public class PartitionedDiffReport {
   }
 
   /**
-   * 排序并将rename entry和temp name封装后返回
+   * 将rename entry根据source path排序，并将rename entry和temp name（tmp-UUID）封装后返回
    */
   @VisibleForTesting
   static List<RenameEntryWithTemporaryName>
@@ -172,7 +179,8 @@ public class PartitionedDiffReport {
   }
 
   /**
-   * 返回转换为temporary name的entries
+   * 从SnapshotDiffReport获取DiffType的entry，转换为temp TranslatedEntry后返回
+   * diffreport-->entry（entry是否在rename的子目录中，translatedname不同）
    */
   static List<TranslatedEntry> handleEntries(DiffType diffType,
       BiFunction<DiffReportEntry, List<RenameEntryWithTemporaryName>,
@@ -184,7 +192,7 @@ public class PartitionedDiffReport {
     List<DiffReportEntry> entries = diffReport.getDiffList().stream()
         .filter(diffReportEntry -> diffReportEntry.getType() == diffType)
         .collect(Collectors.toList());
-    //获取转换为temporary name后的entries
+    //获取转换为temporary name后的entries；将entries转换为TranslatedEntry
     List<TranslatedEntry> translatedEntries = entries
         .stream()
         .flatMap(entry -> {
@@ -201,10 +209,9 @@ public class PartitionedDiffReport {
   }
 
   /**
-   * 返回转换为temporary name后的entry
-   * @param entry
-   * @param renamesWithRenameEntryWithTemporaryNames
-   * @return
+   * 将entry装换为TranslatedEntry
+   * 如果rename dir下的文件有修改，则entry的translatename为：renametmp+renamesource
+   * 如果diffentry不是在rename的子目录下，则translatedname为sourcepath
    */
   private static TranslatedEntry translateToTemporaryName(DiffReportEntry entry,
       List<RenameEntryWithTemporaryName> renamesWithRenameEntryWithTemporaryNames) {
@@ -214,7 +221,10 @@ public class PartitionedDiffReport {
       byte[] renameSourcePath = renameItem.getEntry().getSourcePath();
       byte[] sourcePath = entry.getSourcePath();
       if (sourcePath.equals(renameSourcePath)) {
+        //文件被rename，并且还发生了其他修改
         //if equal, this is two different things
+
+        //remane文件夹里的文件发生了修改
       } else if (isParentOf(renameSourcePath,
           sourcePath)) {
 
@@ -247,9 +257,8 @@ public class PartitionedDiffReport {
 
   /**
    * 转换为target name
-   * @param entry
-   * @param renamesWithRenameEntryWithTemporaryNames
-   * @return
+   * 如果rename dir下的文件有修改，则entry的translatename为：renametarget+renamesource
+   * 如果diffentry不是在rename的子目录下，则translatedname为sourcepath
    */
   private static TranslatedEntry translateToTargetName(DiffReportEntry entry,
       List<RenameEntryWithTemporaryName> renamesWithRenameEntryWithTemporaryNames) {
@@ -332,7 +341,7 @@ public class PartitionedDiffReport {
     }
 
     /**
-     * entry + original name
+     * entry + entry source name
      */
     public static TranslatedEntry withNoRename(DiffReportEntry entry) {
       return new TranslatedEntry(entry,
@@ -340,7 +349,7 @@ public class PartitionedDiffReport {
     }
 
     /**
-     * entry + tmpname
+     * entry + RenameEntryWithTemporaryName tmpname
      */
     public static TranslatedEntry withTemporaryName(DiffReportEntry entry,
         RenameEntryWithTemporaryName renameItem) {
@@ -359,7 +368,7 @@ public class PartitionedDiffReport {
     }
 
     /**
-     * entry + target name
+     * entry + RenameEntryWithTemporaryName target name
      */
     public static TranslatedEntry withTargetName(DiffReportEntry entry,
         RenameEntryWithTemporaryName renameItem) {

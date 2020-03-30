@@ -50,7 +50,7 @@ public class FilePlanner {
   }
 
   /**
-   * 获取SnapshotDiffReport.DiffReportEntry的path
+   * 获取DiffReportEntry的path
    */
   private static byte[] getNodePath(SnapshotDiffReport.DiffReportEntry dre) {
     if (dre.getTargetPath() != null) {
@@ -78,7 +78,7 @@ public class FilePlanner {
     }
   }
   /**
-   * 获取entry的INodeFile
+   * 从snapshot中获取entry的INodeFile
    */
   INodeFile getINodeFile4Snapshot(SyncMount syncMount, String snapshot,
       SnapshotDiffReport.DiffReportEntry entry)
@@ -105,12 +105,18 @@ public class FilePlanner {
     return node.asFile();
   }
 
+  /**
+   * 创建空文件synctask
+   */
   public SyncTask createTouchFileSyncTasks(URI remotePath,
       SyncMount syncMount, long blockCollectionId) {
     return SyncTask.touchFile(remotePath,
         syncMount.getName(), blockCollectionId);
   }
 
+  /**
+   * 创建新建文件synctask（文件不为空）
+   */
   public SyncTask createCreatedFileSyncTasks(int targetSnapshotId,
       INodeFile nodeFile, SyncMount syncMount) throws IOException {
     URI remotePath = createRemotePathFromAbsolutePath(syncMount,

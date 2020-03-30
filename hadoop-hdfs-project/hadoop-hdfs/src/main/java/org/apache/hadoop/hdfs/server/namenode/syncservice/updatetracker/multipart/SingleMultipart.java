@@ -102,7 +102,7 @@ public class SingleMultipart {
   }
 
   /**
-   * 创建BlockSyncTask list
+   * 由CreateFileSyncTask创建BlockSyncTask list
    */
   private static List<BlockSyncTask> createParts(SyncTask.CreateFileSyncTask current,
       List<LocatedBlock> locatedBlocks, ByteBuffer uploadHandle) {
@@ -127,6 +127,9 @@ public class SingleMultipart {
     ).apply(uploadHandle);
   }
 
+  /**
+   * 一个phase finished后构建下一个phase的tracker
+   */
   public void markFinished(UUID syncTaskId, SyncTaskExecutionResult result,
       MultipartPhase multipartPhase) {
     switch (multipartPhase) {

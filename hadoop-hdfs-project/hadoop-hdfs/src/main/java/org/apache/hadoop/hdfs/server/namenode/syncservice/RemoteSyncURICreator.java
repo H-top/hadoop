@@ -40,12 +40,6 @@ public class RemoteSyncURICreator {
   /**
    * Strip off the basePath and append the localPath to the
    * SyncMount's  Remote URL.
-   *
-   * @param syncMount
-   * @param absolutePath
-   * @return
-   * @throws IllegalArgumentException When the absolute path does not refer to a
-   *                                  location within the SyncMount's local path
    */
   public static URI createRemotePathFromAbsolutePath(SyncMount syncMount,
       String absolutePath) {

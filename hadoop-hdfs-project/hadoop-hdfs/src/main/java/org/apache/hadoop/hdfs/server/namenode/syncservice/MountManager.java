@@ -263,13 +263,10 @@ public class MountManager implements Configurable {
    * For backing up, an initial snapshot just lists the directory as being new,
    * since it's new to the backup system. However, the underlying snapshotting
    * infra doesn't work that way, so we construct the diff here.
-   *
-   * @param localBackupPath
-   * @param snapshotName
-   * @return
+   * DiffReportEntry为“+ ./.”，代表创建当前目录，即新建localBackupPath，所以后续的会遍历整个localBackupPath
+   * 重建整个目录的synctask
    */
-  //代表两个snapshot之间的diff，这里是初始化diff
-  private SnapshotDiffReport performInitialDiff(Path localBackupPath,
+  public SnapshotDiffReport performInitialDiff(Path localBackupPath,
       String snapshotName) {
     List<DiffReportEntry> entryList = Lists.newArrayList();
     DiffReportEntry entry = new DiffReportEntry(INodeType.DIRECTORY, DiffType.CREATE,

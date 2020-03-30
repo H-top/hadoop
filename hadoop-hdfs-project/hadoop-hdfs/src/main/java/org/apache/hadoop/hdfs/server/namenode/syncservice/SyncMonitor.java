@@ -188,7 +188,7 @@ public class SyncMonitor {
         createPlanFromDiffReport(syncMount, diffReport, sourceSnapshotId,
             targetSnapshotId);
     for (FileRegion fileRegion : aliasMapReader) {
-      //TODO add nonce
+      //TODO add nonce SyncMountSnapshotUpdateTrackerImpl#finalizeRenameFileTask
       Path pathInAliasMap = fileRegion.getProvidedStorageLocation().getPath();
       planFromDiffReport.filter(pathInAliasMap);
     }
@@ -211,7 +211,6 @@ public class SyncMonitor {
 
   /**
    * 代表syncmount上有新schedule的work，新建一个tracker，并在该tracker上schedule work
-   * @param syncMount
    */
   private void scheduleNewSyncMountSnapshotUpdate(SyncMount syncMount) {
 
@@ -267,11 +266,6 @@ public class SyncMonitor {
 
   /**
    * 从diffreport获取source snapshot id
-   * @param diffReport
-   * @return
-   * @throws UnresolvedLinkException
-   * @throws AccessControlException
-   * @throws ParentNotDirectoryException
    */
   private Optional<Integer> getSourceSnapshotId(SnapshotDiffReport diffReport)
       throws UnresolvedLinkException, AccessControlException,
@@ -290,11 +284,6 @@ public class SyncMonitor {
 
   /**
    * 从diffreport获取target snapshot id
-   * @param diffReport
-   * @return
-   * @throws UnresolvedLinkException
-   * @throws AccessControlException
-   * @throws ParentNotDirectoryException
    */
   private int getTargetSnapshotId(SnapshotDiffReport diffReport)
       throws UnresolvedLinkException, AccessControlException,

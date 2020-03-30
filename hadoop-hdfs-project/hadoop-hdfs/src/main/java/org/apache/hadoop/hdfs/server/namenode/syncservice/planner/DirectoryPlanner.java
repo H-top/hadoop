@@ -66,6 +66,11 @@ public class DirectoryPlanner {
     }
   }
 
+  /**
+   * diff entry中的path为相对路径；将snapshot中的路径转换为正常的绝对路径
+   * 对于delete，正常路径下没有path，但是remote storage正常路径下还有该path，
+   * 所以需要将snapshot中的path转换为正常路径下的path
+   */
   static File convertPathToAbsoluteFile(byte[] path,
       Path localBackupPath, String snapshot) {
     String sourcePath = new String(path);
@@ -78,12 +83,16 @@ public class DirectoryPlanner {
     }
   }
 
+  /**
+   * 将entry转换为synctask，并添加到FileAndDirsSyncTasks
+   */
   public FileAndDirsSyncTasks createPlanForDirectory(DiffReportEntry diffEntry,
       String targetName, SyncMount syncMount, int snapshotId) {
 
     try {
       byte[] path = diffEntry.getSourcePath();
       String absolutePath;
+      //如果是delete，在原路径下是找不到path的，只能去snapshot中找
       if (diffEntry.getType() == SnapshotDiffReport.DiffType.DELETE) {
         /* Deleted directories only have the inode in the .snapshot/<snapshot>/
          * dir.
@@ -94,13 +103,14 @@ public class DirectoryPlanner {
             .getDirectorySnapshottableFeature();
         Snapshot snapshot = dsf.getSnapshotById(snapshotId);
         String snapshotName = Snapshot.getSnapshotName(snapshot);
+        //  /backupPath/.snapshot/snapshotname/path
         absolutePath = convertPathToAbsoluteFile(path,
             syncMount.getLocalPath(), snapshotName).getAbsolutePath();
       } else {
         absolutePath = convertPathToAbsoluteFile(path,
             syncMount.getLocalPath()).getAbsolutePath();
       }
-
+      //获取到inode目录，不是SNAPSHOT的形式（/backupPath/path）
       INodeDirectory nodeDir = fsDirectory.getINode(absolutePath).asDirectory();
       FileAndDirsSyncTasks plan = new FileAndDirsSyncTasks();
 
@@ -121,7 +131,7 @@ public class DirectoryPlanner {
         LOG.error("createPlanForDirectory called on directory that had diff {}",
             diffEntry.getInodeType());
       }
-
+      //处理目录下的子目录
       for (INode inode : nodeDir.getChildrenList(snapshotId)) {
         FileAndDirsSyncTasks subPlan =
             createPlanForINode(diffEntry, snapshotId, inode, syncMount);

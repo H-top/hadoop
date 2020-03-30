@@ -150,6 +150,8 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
     if (this.cancelling) {
       return SchedulableSyncPhase.empty();
     } else {
+      //如果MultipartPlan不存在，说明之前的已经finished了，重新创建MultipartPlan，
+      //否则在MultipartPlan上handlephase
       return multipartPlanOpt
           .map(MultipartPlan::handlePhase)
           .orElseGet(this::handlePhase);
@@ -158,7 +160,8 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
 
   /**
    * 生成SchedulableSyncPhase
-   * 如果currenttasks没有完成，则从currenttasks获取task；否则进入next phase
+   * 如果currenttasks没有完成，则从currenttasks获取task；否则进入next phasedplan
+   * 当MultipartPlan finish后调用该方法，新建MultipartPlan
    */
   private SchedulableSyncPhase handlePhase() {
     if (this.currentTasks.isNotFinished()) {
@@ -181,7 +184,8 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
   }
 
   /**
-   * 设置currenttasks，返回multipartable synctasks
+   * 设置currenttasks，返回multipartable synctasks(create file task)
+   * 将multipartable synctask和nonmultipartable synctask分开
    */
   private List<CreateFileSyncTask> setCurrentTasksButSkimOffMultipartables(List<SyncTask> syncTasks) {
     //optimization, maybe a bit premature
@@ -253,7 +257,7 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
   }
 
   /**
-   * 创建multipartable SchedulableSyncPhase
+   * 由nextSchedulableWork创建MultipartPlan，返回MultipartPlan的init phase
    */
   private SchedulableSyncPhase startMultipartPlan(List<CreateFileSyncTask> nextSchedulableWork) {
     if (nextSchedulableWork.isEmpty()) {
@@ -298,6 +302,7 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
   /**
    * 将synctask中的block覆盖存储到aliasmap（block --> ProvidedStorageLocation（nonce））
    */
+  //TODO 不需要删除修改前file的aliasmap吗？
   private void finalizeModifyFileTask(ModifyFileSyncTask syncTask, SyncTaskExecutionResult result) {
     Path filePath = new Path(syncTask.getUri());
     final ByteBuffer nonce = result.getResult();
@@ -341,11 +346,12 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
   }
 
   /**
-   * 调用fs的方法进行rename，并更新aliasmap
+   * 更新aliasmap
    */
   private void finalizeRenameFileTask(RenameFileSyncTask syncTask) {
     try {
       //TODO rename有问题？？
+      //已经在metadatasyncoperation中rename过了，所以此处并不需要进行rename操作，只是为了获取pathhandle？
       Path filePath = new Path(syncTask.getUri());
       FileSystem fs = FileSystem.get(syncTask.renamedTo, config);
       Path renamedToPath = new Path(syncTask.renamedTo);

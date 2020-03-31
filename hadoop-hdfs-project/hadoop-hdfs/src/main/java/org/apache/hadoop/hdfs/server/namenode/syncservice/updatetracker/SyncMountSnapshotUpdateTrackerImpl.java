@@ -72,7 +72,7 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
 
   /**
    * 在currenttasks和MultipartPlan中标记finished，并修改MultipartPlan属性
-   * finalize finished task（修改aliasmap）
+   * finalize finished task（修改aliasmap）--no multipart在这里finalize，multipart的在multipartPlan
    */
   @Override
   public void markFinished(UUID syncTaskId, SyncTaskExecutionResult result) {
@@ -144,6 +144,7 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
 
   /**
    * 获取SchedulableSyncPhase
+   * 如果是multipartable的，调用MultipartPlan::handlePhase，否则调用this::handlePhase
    */
   @Override
   public SchedulableSyncPhase getNextSchedulablePhase() {
@@ -302,7 +303,7 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
   /**
    * 将synctask中的block覆盖存储到aliasmap（block --> ProvidedStorageLocation（nonce））
    */
-  //TODO 不需要删除修改前file的aliasmap吗？
+  //TODO 不需要删除修改前file的aliasmap吗？没有modifyfile synctask，转换为createfile了
   private void finalizeModifyFileTask(ModifyFileSyncTask syncTask, SyncTaskExecutionResult result) {
     Path filePath = new Path(syncTask.getUri());
     final ByteBuffer nonce = result.getResult();

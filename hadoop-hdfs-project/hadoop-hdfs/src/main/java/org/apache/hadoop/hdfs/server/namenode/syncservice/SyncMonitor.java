@@ -115,9 +115,13 @@ public class SyncMonitor {
 
       if (syncMountSnapshotUpdateTracker.isFinished()) {
         inProgress.remove(syncMountId);
-
+        //tracker finish表示此次snapshot的sync结束，等待timeout进行下一次sync schedule，
+        // 所以wait的timeout为两次snapshot sync的最大时间间隔，这里也不需要notify syncmonitor
         //No notification, as this is a timeout thing in the SyncServiceSatisfier
       } else {
+        //每次synctask成功都notify syncmonitor进行下一次sync schedule
+        //对于failed synctask会重新加入todo list，如果不notify syncmonitor schedulenextwork，那么这些synctask不会被重新schedule，
+        //保证failed synctask能被及时schedule，而不是等到syncmonitor timeout
         this.notify();
       }
     });
@@ -176,10 +180,12 @@ public class SyncMonitor {
 
   /**
    * 对syncmount进行full resync，创建新的tracker
+   * no need for full resync, just resync task between fromSnapshot and toSnapshot
    */
   public void fullResync(String syncMountId, BlockAliasMap.Reader<FileRegion> aliasMapReader) throws IOException {
     MountManager mountManager = namesystem.getMountManagerSync();
     SyncMount syncMount = mountManager.getSyncMount(syncMountId);
+    //TODO get diffreport between previous fromSnapshot and toSnapshot
     SnapshotDiffReport diffReport =
         mountManager.forceInitialSnapshot(syncMount.getLocalPath());
     int targetSnapshotId = getTargetSnapshotId(diffReport);

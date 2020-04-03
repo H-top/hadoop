@@ -86,6 +86,8 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
         this.multipartPlanOpt = Optional.empty();
       }
     });
+    //这里只对no multipart的synctask进行finalize，multipart synctask finalize在singlemultipart类中
+    // finalizeTask方法以匿名函数的方式传递给singlemultipart，并在complete phase后调用finalize
     syncTaskOpt.ifPresent(syncTask -> {
       finalizeTask(syncTask, result);
     });
@@ -358,6 +360,7 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
       Path renamedToPath = new Path(syncTask.renamedTo);
       fs.rename(new Path(renamedToPath.toUri()), renamedToPath);
       FileStatus fileStatus = fs.getFileStatus(renamedToPath);
+      //TODO overwrite S3AFileSystem#getPathHandle, 不然直接抛异常
       PathHandle pathHandle = fs.getPathHandle(fileStatus);
       final byte[] nonce = pathHandle.toByteArray();
 

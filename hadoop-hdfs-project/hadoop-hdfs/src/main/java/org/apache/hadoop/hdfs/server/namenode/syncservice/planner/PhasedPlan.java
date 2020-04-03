@@ -18,11 +18,19 @@ package org.apache.hadoop.hdfs.server.namenode.syncservice.planner;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathHandle;
 import org.apache.hadoop.hdfs.server.protocol.SyncTask;
+import org.apache.hadoop.hdfs.util.ByteArrayManager;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PhasedPlan.Phases.*;
@@ -37,26 +45,29 @@ public class PhasedPlan {
   private List<SyncTask> renameToFinalName;
   private List<SyncTask> createDirSyncTasks;
   private List<SyncTask> createFileSyncTasks;
+  private Configuration conf;
 
   public PhasedPlan(List<SyncTask> renameToTemporaryName,
       List<SyncTask> deleteMetadataSyncTasks,
       List<SyncTask> renameToFinalName,
       List<SyncTask> createDirSyncTasks,
-      List<SyncTask> createFileSyncTasks) {
+      List<SyncTask> createFileSyncTasks,
+      Configuration conf) {
     this.renameToTemporaryName = renameToTemporaryName;
     this.deleteMetadataSyncTasks = deleteMetadataSyncTasks;
     this.renameToFinalName = renameToFinalName;
     this.createDirSyncTasks = createDirSyncTasks;
     this.createFileSyncTasks = createFileSyncTasks;
+    this.conf = conf;
   }
 
   /**
    * create an empty PhasedPlan
    */
-  public static PhasedPlan empty() {
+  public static PhasedPlan empty(Configuration conf) {
     return new PhasedPlan(Collections.emptyList(), Collections.emptyList(),
         Collections.emptyList(), Collections.emptyList(),
-        Collections.emptyList());
+        Collections.emptyList(), conf);
   }
 
   /**
@@ -154,7 +165,10 @@ public class PhasedPlan {
     this.createFileSyncTasks =
         this.createFileSyncTasks
             .stream()
-            .filter(syncTask -> syncTask.getUri().getPath().equals(pathInAliasMap.toString()))
+            .filter(syncTask -> {
+              boolean isPathEqual = syncTask.getUri().getPath().equals(pathInAliasMap.toString());
+              return !isPathEqual;
+            })
             .collect(Collectors.toList());
   }
 

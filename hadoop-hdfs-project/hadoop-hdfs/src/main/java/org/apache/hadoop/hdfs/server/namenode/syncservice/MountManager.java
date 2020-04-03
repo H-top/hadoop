@@ -52,12 +52,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.apache.hadoop.fs.XAttr.NameSpace.USER;
@@ -248,7 +243,7 @@ public class MountManager implements Configurable {
    * @return Unique name identifying the backup
    */
   protected String generateBackupName() {
-    throw new UnsupportedOperationException();
+    return UUID.randomUUID().toString();
   }
 
   private SyncMount getBackupMountByName(String name) throws MountException {

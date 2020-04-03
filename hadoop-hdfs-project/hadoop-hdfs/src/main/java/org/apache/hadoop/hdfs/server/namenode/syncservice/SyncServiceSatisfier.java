@@ -120,12 +120,13 @@ public class SyncServiceSatisfier implements Runnable {
       return;
     }
     //TODO needed??
-    if (isRunning) {
-      stop();
-    }
     try {
       syncServiceSatisfierThread.join(3000);
     } catch (InterruptedException ie) {
+      LOG.info("sync service interrupted while time waited for stop");
+    }
+    if (isRunning) {
+      stop();
     }
   }
 
@@ -151,9 +152,12 @@ public class SyncServiceSatisfier implements Runnable {
     } else {
       syncMonitor.scheduleNextWork();
     }
+    //TODO 目前metadatasynctask schedule实现是单线程，每次schedule后wait；blocksynctask是多线程，最多等待wait的时间
     synchronized (syncMonitor) {
       try {
         //TODO: Make this wait the maximum wait between two snaphots, handle per SyncMount
+        //一次schedule完等一会儿再进行下一次schedule，时间需要调；上一次没结束没必要直接进行schedule，因为返回的task也都是null，所以需要wait
+        //TODO wait time
         syncMonitor.wait(1000);
       } catch (InterruptedException e) {
         this.isRunning = false;

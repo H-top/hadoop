@@ -48,6 +48,7 @@ public class SyncTaskSchedulerImpl implements SyncTaskScheduler {
 
   /**
    * 从SchedulableSyncPhase中获取metadata和block sync task，并schedule相应的task
+   * 如果task为empty，schedule方法会直接返回，所以不用担心每个synctask finish都notify syncmonitor schedulenextwork的问题
    */
   @Override
   public void schedule(SchedulableSyncPhase schedulableSyncPhase) {

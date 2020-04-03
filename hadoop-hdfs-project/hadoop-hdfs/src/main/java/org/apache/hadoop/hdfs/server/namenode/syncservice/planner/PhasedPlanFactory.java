@@ -51,10 +51,11 @@ public class PhasedPlanFactory {
 
   private FilePlanner filePlanner;
   private DirectoryPlanner directoryPlanner;
+  private Configuration conf;
 
   public PhasedPlanFactory(FilePlanner filePlanner,
       DirectoryPlanner directoryPlanner, Configuration conf) {
-
+    this.conf = conf;
     this.filePlanner = filePlanner;
     this.directoryPlanner = directoryPlanner;
   }
@@ -106,7 +107,7 @@ public class PhasedPlanFactory {
 
     return new PhasedPlan(renameToTemporaryName, deleteSyncTasks.getAllTasks(),
         renameToFinalName, createsSyncTasks.getDirTasks(),
-        createsSyncTasks.getFileTasks());
+        createsSyncTasks.getFileTasks(), conf);
   }
 
   /**

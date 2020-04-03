@@ -129,6 +129,7 @@ public class SingleMultipart {
 
   /**
    * 一个phase finished后构建下一个phase的tracker
+   * 只有在complete phase finish后才finalize createfilesynctask
    */
   public void markFinished(UUID syncTaskId, SyncTaskExecutionResult result,
       MultipartPhase multipartPhase) {

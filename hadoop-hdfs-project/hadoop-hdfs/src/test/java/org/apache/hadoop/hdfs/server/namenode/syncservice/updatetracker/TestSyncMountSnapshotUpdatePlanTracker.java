@@ -73,7 +73,7 @@ public class TestSyncMountSnapshotUpdatePlanTracker {
         Collections.emptyList(),
         Collections.emptyList(),
         Collections.emptyList(),
-        Collections.emptyList()
+        Collections.emptyList(), configuration
     );
     SyncMountSnapshotUpdateTrackerImpl underTest =
         new SyncMountSnapshotUpdateTrackerImpl(phasedPlan, dummyAliasMapWriter,
@@ -164,7 +164,7 @@ public class TestSyncMountSnapshotUpdatePlanTracker {
         Lists.newArrayList(deleteDirectory, deleteFile),
         Lists.newArrayList(renameDirectory),
         Lists.newArrayList(createDirectory),
-        Lists.newArrayList(createFile)
+        Lists.newArrayList(createFile), configuration
     );
 
     SyncMountSnapshotUpdateTrackerImpl underTest =
@@ -257,7 +257,7 @@ public class TestSyncMountSnapshotUpdatePlanTracker {
         Lists.newArrayList(deleteDirectory, deleteFile),
         Lists.newArrayList(renameDirectory),
         Lists.newArrayList(createDirectory),
-        Lists.newArrayList(createFile)
+        Lists.newArrayList(createFile), configuration
     );
 
     SyncMountSnapshotUpdateTrackerImpl underTest =
@@ -332,7 +332,7 @@ public class TestSyncMountSnapshotUpdatePlanTracker {
         Lists.newArrayList(deleteDirectory, deleteFile),
         Lists.newArrayList(renameDirectory),
         Lists.newArrayList(createDirectory),
-        Lists.newArrayList(createFile)
+        Lists.newArrayList(createFile), configuration
     );
 
     SyncMountSnapshotUpdateTrackerImpl underTest =
@@ -436,7 +436,7 @@ public class TestSyncMountSnapshotUpdatePlanTracker {
         Collections.emptyList(),
         Collections.emptyList(),
         Collections.emptyList(),
-        Lists.newArrayList(createFile)
+        Lists.newArrayList(createFile), configuration
     );
 
     SyncMountSnapshotUpdateTrackerImpl underTest =
@@ -513,7 +513,7 @@ public class TestSyncMountSnapshotUpdatePlanTracker {
         Collections.emptyList(),
         Collections.emptyList(),
         Collections.emptyList(),
-        Lists.newArrayList(createFile)
+        Lists.newArrayList(createFile), configuration
     );
 
     SyncMountSnapshotUpdateTrackerImpl underTest =
@@ -578,7 +578,7 @@ public class TestSyncMountSnapshotUpdatePlanTracker {
         Collections.emptyList(),
         Collections.emptyList(),
         Collections.emptyList(),
-        Lists.newArrayList(createFile1, createFile2, createFile3, createFile4, createFile5)
+        Lists.newArrayList(createFile1, createFile2, createFile3, createFile4, createFile5), configuration
     );
 
     SyncMountSnapshotUpdateTrackerImpl underTest =

@@ -1838,8 +1838,8 @@ public interface ClientProtocol {
    * @throws org.apache.hadoop.hdfs.server.namenode.SafeModeException operation not
    *           allowed in safemode.
    */
-  @AtMostOnce
-  void syncCreateToRemoteStore(String src) throws IOException;
+//  @AtMostOnce
+//  void syncCreateToRemoteStore(String src) throws IOException;
 
   /**
    * synchronize a file or directory rename to a remote store.
@@ -1853,8 +1853,8 @@ public interface ClientProtocol {
    * @throws org.apache.hadoop.hdfs.server.namenode.SafeModeException operation not
    *           allowed in safemode.
    */
-  @AtMostOnce
-  void syncRenameToRemoteStore(String src, String dest) throws IOException;
+//  @AtMostOnce
+//  void syncRenameToRemoteStore(String src, String dest) throws IOException;
 
   /**
    * synchronize a file or directory deletion to a remote store.
@@ -1867,6 +1867,6 @@ public interface ClientProtocol {
    * @throws org.apache.hadoop.hdfs.server.namenode.SafeModeException operation not
    *           allowed in safemode.
    */
-  @AtMostOnce
-  void syncDeleteToRemoteStore(String src) throws IOException;
+//  @AtMostOnce
+//  void syncDeleteToRemoteStore(String src) throws IOException;
 }

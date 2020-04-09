@@ -20,7 +20,9 @@ import com.google.common.collect.Lists;
 import org.apache.hadoop.hdfs.server.protocol.MetadataSyncTask;
 import org.apache.hadoop.hdfs.server.protocol.SyncTask;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class FileAndDirsSyncTasks {
 
@@ -60,6 +62,15 @@ public class FileAndDirsSyncTasks {
     List<SyncTask> allTasks = Lists.newArrayList();
     allTasks.addAll(dirTasks);
     allTasks.addAll(fileTasks);
+    return allTasks;
+  }
+
+  public List<SyncTask> getAllTasksForDelete() {
+    List<SyncTask> allTasks = Lists.newArrayList();
+    Collections.reverse(fileTasks);
+    Collections.reverse(dirTasks);
+    allTasks.addAll(fileTasks);
+    allTasks.addAll(dirTasks);
     return allTasks;
   }
 

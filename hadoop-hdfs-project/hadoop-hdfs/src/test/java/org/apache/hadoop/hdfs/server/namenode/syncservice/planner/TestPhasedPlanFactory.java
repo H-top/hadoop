@@ -260,7 +260,7 @@ public class TestPhasedPlanFactory {
 
     createFileAndDirs.addFileSync(fileCreate);
     when(filePlannerMock.createPlanTreeNodeForCreatedFile(syncMount, targetSnapshotId, entry,
-        remoteLocation.resolve(sourcePath))).thenReturn(fileCreate);
+        create.getTranslatedName())).thenReturn(fileCreate);
 
     PhasedPlan phasedPlan = phasedPlanFactory.createFromPartitionedDiffReport(
         partitionedDiffReport, syncMount, snapshot, sourceSnapshotId,
@@ -275,7 +275,7 @@ public class TestPhasedPlanFactory {
     assertThat(actual).isEqualTo(fileCreate);
     verify(filePlannerMock, times(1)).
         createPlanTreeNodeForCreatedFile(syncMount, targetSnapshotId, entry,
-            remoteLocation.resolve(sourcePath));
+            create.getTranslatedName());
     verifyZeroInteractions(directoryPlannerMock);
   }
 
@@ -349,7 +349,7 @@ public class TestPhasedPlanFactory {
     createFileAndDirs.addFileSync(fileCreate);
 
     when(filePlannerMock.createModifiedFileSyncTasks(targetSnapshotId,
-        sourcePath.getBytes(), syncMount)).thenReturn(fileCreate);
+        sourcePath.getBytes(), modification.getTranslatedName(), syncMount)).thenReturn(fileCreate);
 
     PhasedPlan phasedPlan = phasedPlanFactory.createFromPartitionedDiffReport(
         partitionedDiffReport, syncMount, snapshot, sourceSnapshotId,
@@ -362,7 +362,7 @@ public class TestPhasedPlanFactory {
     assertThat(metadataSyncTask).isEqualTo(fileCreate);
     verify(filePlannerMock, times(1)).
         createModifiedFileSyncTasks(targetSnapshotId, sourcePath.getBytes(),
-            syncMount);
+            modification.getTranslatedName(), syncMount);
     verifyZeroInteractions(directoryPlannerMock);
   }
 
@@ -406,7 +406,7 @@ public class TestPhasedPlanFactory {
         syncMount,
         targetSnapshotId,
         dreamtUpDiffReportInsideFunction,
-        targetURI))
+        targetPath))
         .thenReturn(expected);
 
     PhasedPlan phasedPlan = phasedPlanFactory.createFromPartitionedDiffReport(partitionedDiffReport,

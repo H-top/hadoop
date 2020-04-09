@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.naming.directory.DirContext;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
@@ -38,6 +39,7 @@ public class TestIntegrationPhasedSyncMountSnapshotUpdateFactory {
   protected MiniDFSCluster cluster;
   protected DistributedFileSystem hdfs;
   private Comparator<SyncTask> compareNoBlocks;
+  private Comparator<SyncTask> compareDeleteNoBlocks;
   private Comparator<SyncTask> compareToTempNoBlocks;
   private Comparator<SyncTask> compareFromTempNoBlocks;
 
@@ -45,6 +47,28 @@ public class TestIntegrationPhasedSyncMountSnapshotUpdateFactory {
   public void setUp() throws Exception {
     compareNoBlocks = (o1, o2) -> {
       int uriCompare = o1.getUri().compareTo(o2.getUri());
+      if(uriCompare == 0){
+        int syncMountEqual = o1.getSyncMountId().compareTo(o2.getSyncMountId());
+        if(syncMountEqual == 0){
+          return o1.getOperation().compareTo(o2.getOperation());
+        } else {
+          return syncMountEqual;
+        }
+      } else {
+        return uriCompare;
+      }
+    };
+    compareDeleteNoBlocks = (o1, o2) -> {
+      int uriCompare = 0;
+      if (o2.getUri().getPath().contains("tmp") && o1.getUri().getPath().contains("tmp")) {
+        String[] o1Paths = o1.getUri().getPath().split("/tmp[^/]*");
+        String o1Path = o1Paths[0] + o1Paths[1];
+        String[] o2Paths = o2.getUri().getPath().split("/tmp[^/]*");
+        String o2Path = o2Paths[0] + o2Paths[1];
+        uriCompare = o1Path.compareTo(o2Path);
+      } else {
+        uriCompare = o1.getUri().compareTo(o2.getUri());
+      }
       if(uriCompare == 0){
         int syncMountEqual = o1.getSyncMountId().compareTo(o2.getSyncMountId());
         if(syncMountEqual == 0){
@@ -224,7 +248,7 @@ public class TestIntegrationPhasedSyncMountSnapshotUpdateFactory {
    * touch /basic-test/a/b/c/d/f1.bin
    * touch /basic-test/f1.bin
    */
-  @Test(timeout = 60000)
+  @Test
   public void testNewDirsNewFiles() throws Exception {
     final Path dir = new Path("/testNewDirsNewFiles");
     final Path subDir = new Path(dir, "a/b/c");
@@ -695,6 +719,160 @@ public class TestIntegrationPhasedSyncMountSnapshotUpdateFactory {
 //            .andThen(renameFile(file01, file01BB)));
   }
 
+  @Test(timeout = 60000)
+  public void testSwapDirectoriesAndDelete() throws Exception {
+    final Path dir = new Path("/testSwapDirectories");
+    final Path file = new Path(dir, "file");
+    final Path sub01 = new Path(dir, "sub01");
+    final Path subsub01 = new Path(sub01, "subsub01");
+    final Path file01 = new Path(subsub01, "file01");
+    final Path sub02 = new Path(dir, "sub02");
+    final Path file02 = new Path(sub01, "file02");
+    final Path tmp = new Path(dir, "tmp");
+
+    hdfs.mkdirs(dir);
+    hdfs.mkdirs(sub01);
+    hdfs.mkdirs(sub02);
+    DFSTestUtil.createFile(hdfs, file, BLOCKSIZE, REPLICATION_1, SEED);
+    DFSTestUtil.createFile(hdfs, file01, BLOCKSIZE, REPLICATION_1, SEED);
+    DFSTestUtil.createFile(hdfs, file02, BLOCKSIZE, REPLICATION_1, SEED);
+    hdfs.allowSnapshot(dir);
+    hdfs.createSnapshot(dir, "s1");
+
+    hdfs.rename(sub01, tmp);
+    hdfs.rename(sub02, sub01);
+    hdfs.rename(tmp, sub02);
+    hdfs.delete(file, false);
+    hdfs.delete(new Path(sub02, "subsub01"), true);
+
+    hdfs.createSnapshot(dir, "s2");
+    SnapshotDiffReport snapshotDiffReport= hdfs.getSnapshotDiffReport(dir, "s1", "s2");
+    URI remoteLocation = new URI("hdfs://host/path/");
+    SyncMount syncMount = new SyncMount("StubbedSyncMount", dir, remoteLocation);
+
+    //when
+    PhasedSyncMountSnapshotUpdateFactory underTest =
+            new PhasedSyncMountSnapshotUpdateFactory(cluster.getNamesystem(),
+                    cluster.getNamesystem().getBlockManager(), new Configuration());
+    PhasedPlan phasedPlan =
+            underTest.createPlanFromDiffReport(syncMount, snapshotDiffReport,
+                    Optional.of(0), 1);
+
+    assertThat(phasedPlan.peekRenameToTemporaryName())
+            .usingElementComparator(compareToTempNoBlocks)
+            .containsExactly(
+                    renameToTempDirectory(remoteLocation, sub02, syncMount),
+                    renameToTempDirectory(remoteLocation, sub01, syncMount)
+            );
+
+    assertThat(phasedPlan.peekRenameToFinalName())
+            .usingElementComparator(compareFromTempNoBlocks)
+            .containsExactly(
+                    renameFromTempDirectory(remoteLocation, sub01, syncMount),
+                    renameFromTempDirectory(remoteLocation, sub02, syncMount)
+            );
+
+    assertThat(phasedPlan.peekDeleteMetadataSyncTasks())
+            .usingElementComparator(compareDeleteNoBlocks)
+            .containsExactly(
+                    deleteFile(remoteLocation, new Path(sub02.getParent(), "tmp/subsub01/file01"), syncMount),
+                    deleteFile(remoteLocation, file, syncMount),
+                    deleteDirectory(remoteLocation, new Path(sub02.getParent(), "tmp/subsub01"), syncMount)
+            );
+    assertThat(phasedPlan.peekCreateFileSyncTasks()).isEmpty();
+    assertThat(phasedPlan.peekCreateDirSyncTasks()).isEmpty();
+  }
+
+  @Test
+  public void testSwapDirectoriesDeleteCreate() throws Exception {
+    final Path dir = new Path("/testSwapDirectories");
+    final Path file = new Path(dir, "file");
+    final Path sub01 = new Path(dir, "sub01");
+    final Path subsub01 = new Path(sub01, "subsub01");
+    final Path file01 = new Path(subsub01, "file01");
+    final Path sub02 = new Path(dir, "sub02");
+    final Path subsub02 = new Path(sub02, "subsub02");
+    final Path file02 = new Path(subsub02, "file02");
+    final Path tmp = new Path(dir, "tmp");
+
+    hdfs.mkdirs(dir);
+    hdfs.mkdirs(sub01);
+    hdfs.mkdirs(sub02);
+    DFSTestUtil.createFile(hdfs, file, BLOCKSIZE, REPLICATION_1, SEED);
+    DFSTestUtil.createFile(hdfs, file01, BLOCKSIZE, REPLICATION_1, SEED);
+    hdfs.allowSnapshot(dir);
+    hdfs.createSnapshot(dir, "s1");
+
+    DFSTestUtil.createFile(hdfs, file02, BLOCKSIZE, REPLICATION_1, SEED);
+    hdfs.rename(sub01, tmp);
+    hdfs.rename(sub02, sub01);
+    hdfs.rename(tmp, sub02);
+    hdfs.delete(file, false);
+    hdfs.delete(new Path(sub02, "subsub01"), true);
+    DFSTestUtil.createFile(hdfs, new Path(dir, "sub02/subsub11/file11"), BLOCKSIZE, REPLICATION_1, SEED);
+
+    hdfs.createSnapshot(dir, "s2");
+    SnapshotDiffReport snapshotDiffReport= hdfs.getSnapshotDiffReport(dir, "s1", "s2");
+    URI remoteLocation = new URI("hdfs://host/path/");
+    SyncMount syncMount = new SyncMount("StubbedSyncMount", dir, remoteLocation);
+
+    //when
+    PhasedSyncMountSnapshotUpdateFactory underTest =
+            new PhasedSyncMountSnapshotUpdateFactory(cluster.getNamesystem(),
+                    cluster.getNamesystem().getBlockManager(), new Configuration());
+    PhasedPlan phasedPlan =
+            underTest.createPlanFromDiffReport(syncMount, snapshotDiffReport,
+                    Optional.of(0), 1);
+
+    assertThat(phasedPlan.peekRenameToTemporaryName())
+            .usingElementComparator(compareToTempNoBlocks)
+            .containsExactly(
+                    renameToTempDirectory(remoteLocation, sub02, syncMount),
+                    renameToTempDirectory(remoteLocation, sub01, syncMount)
+            );
+
+    assertThat(phasedPlan.peekRenameToFinalName())
+            .usingElementComparator(compareFromTempNoBlocks)
+            .containsExactly(
+                    renameFromTempDirectory(remoteLocation, sub01, syncMount),
+                    renameFromTempDirectory(remoteLocation, sub02, syncMount)
+            );
+
+    assertThat(phasedPlan.peekDeleteMetadataSyncTasks())
+            .usingElementComparator(compareDeleteNoBlocks)
+            .containsExactly(
+                    deleteFile(remoteLocation, new Path(sub02.getParent(), "tmp/subsub01/file01"), syncMount),
+                    deleteFile(remoteLocation, file, syncMount),
+                    deleteDirectory(remoteLocation, new Path(sub02.getParent(), "tmp/subsub01"), syncMount)
+            );
+
+    assertThat(phasedPlan.peekCreateDirSyncTasks())
+            .usingElementComparator(compareNoBlocks)
+            .containsExactly(
+                    createDirectory(remoteLocation, new Path(dir, "sub02/subsub11"), syncMount),
+                    createDirectory(remoteLocation, new Path(dir, "sub01/subsub02"), syncMount)
+            );
+    assertThat(phasedPlan.peekCreateFileSyncTasks())
+            .usingElementComparator(compareNoBlocks)
+            .containsExactly(
+                    createFile(remoteLocation, new Path(dir, "sub02/subsub11/file11"), syncMount),
+                    createFile(remoteLocation, new Path(dir, "sub01/subsub02/file02"), syncMount)
+            );
+  }
+
+  private SyncTask deleteFile(URI remote, Path path, SyncMount syncMount) throws URISyntaxException {
+    Path localPath = syncMount.getLocalPath();
+    URI baseURI = new URI(localPath.toString());
+    String relativizedPath = baseURI.relativize(path.toUri()).getPath();
+    return SyncTask.deleteFile(remote.resolve(relativizedPath), Collections.emptyList(), syncMount.getName());
+  }
+
+  private SyncTask deleteDirectory(URI remote, Path path, SyncMount syncMount) throws URISyntaxException {
+    Path localPath = syncMount.getLocalPath();
+    URI baseURI = new URI(localPath.toString());
+    String relativizedPath = baseURI.relativize(path.toUri()).getPath();
+    return SyncTask.deleteDirectory(remote.resolve(relativizedPath), syncMount.getName());
+  }
   private SyncTask createFile(URI remote, Path path, SyncMount syncMount) throws URISyntaxException {
     Path localPath = syncMount.getLocalPath();
     URI baseURI = new URI(localPath.toString());

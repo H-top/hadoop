@@ -103,7 +103,8 @@ public class PartitionedDiffReport {
     List<TranslatedEntry> translatedDeletes =
         handleDeletes(renameEntries,
             diffReport, syncServiceFileFilter);
-    Collections.reverse(translatedDeletes);
+//    //TODO reverse deletesynctask not delete diff entry
+//    Collections.reverse(translatedDeletes);
 
     List<TranslatedEntry> translatedModifies =
         handleModifies(renameEntries,

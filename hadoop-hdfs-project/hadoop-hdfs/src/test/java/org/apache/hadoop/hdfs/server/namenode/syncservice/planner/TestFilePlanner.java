@@ -66,7 +66,7 @@ public class TestFilePlanner {
         null, (short) 0, 0L);
 
     SyncTask createdFileSyncTasks = filePlanner
-        .createCreatedFileSyncTasks(targetSnapshotId, iNodeFile, syncMount);
+        .createCreatedFileSyncTasks(targetSnapshotId, iNodeFile, syncMount, sourcePath);
 
     assertThat(createdFileSyncTasks).isNotNull();
     assertThat(createdFileSyncTasks.getOperation()).isEqualTo(SyncTaskOperation.TOUCH_FILE);
@@ -110,7 +110,7 @@ public class TestFilePlanner {
         .thenReturn(locatedBlocks);
 
     SyncTask createdFileSyncTasks = filePlanner
-        .createCreatedFileSyncTasks(targetSnapshotId, iNodeFile, syncMount);
+        .createCreatedFileSyncTasks(targetSnapshotId, iNodeFile, syncMount, sourcePath);
 
     assertThat(createdFileSyncTasks).isNotNull();
     assertThat(createdFileSyncTasks.getOperation()).isEqualTo(SyncTaskOperation.CREATE_FILE);

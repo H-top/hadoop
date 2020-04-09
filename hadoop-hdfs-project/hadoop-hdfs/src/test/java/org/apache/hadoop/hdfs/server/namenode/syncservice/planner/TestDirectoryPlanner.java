@@ -87,7 +87,8 @@ public class TestDirectoryPlanner {
         .createCreatedFileSyncTasks(
             targetSnapshotId,
             iNodeFile,
-            syncMount))
+            syncMount,
+            sourcePath + "/" + iNodeName))
         .thenReturn(createdFile);
 
     File expectedINodePath = DirectoryPlanner.convertPathToAbsoluteFile(sourcePath.getBytes(),
@@ -100,7 +101,7 @@ public class TestDirectoryPlanner {
 
     FileAndDirsSyncTasks planForCreatedDirectory = directoryPlanner
         .createPlanForDirectory(diffEntry,
-            targetName,
+            sourcePath,
             syncMount,
             targetSnapshotId);
 
@@ -111,7 +112,7 @@ public class TestDirectoryPlanner {
     assertThat(syncTask.getOperation()).isEqualTo(SyncTaskOperation.CREATE_DIRECTORY);
 
     Mockito.verify(filePlannerMock, times(1))
-        .createCreatedFileSyncTasks(targetSnapshotId, iNodeFile, syncMount);
+        .createCreatedFileSyncTasks(targetSnapshotId, iNodeFile, syncMount, sourcePath + "/" + iNodeName);
   }
 
 }

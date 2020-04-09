@@ -52,12 +52,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.apache.hadoop.fs.XAttr.NameSpace.USER;
@@ -74,8 +69,10 @@ import static org.apache.hadoop.fs.XAttrSetFlag.REPLACE;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class MountManager implements Configurable {
-  public static final String PROVIDED_SYNC_FROM_SNAPSHOT_NAME =
-      "PROVIDED_SYNC_FROM_SNAPSHOT_NAME";
+  public static final String PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME =
+      "PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME";
+  public static final String PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME =
+      "PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME";
   public static final String PROVIDED_SYNC_MOUNT_DETAILS =
       "PROVIDED_SYNC_MOUNT_DETAILS";
   public static final String NO_FROM_SNAPSHOT_YET = "no_snapshot_yet";
@@ -110,8 +107,10 @@ public class MountManager implements Configurable {
       throws MountException {
     try {
       setUpFileSystemForSnapshotting(syncMountToCreate);
-      storeBackingUpFromSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
+      storeBackingUpPreviousFromSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
           NO_FROM_SNAPSHOT_YET, CREATE);
+      storeBackingUpPreviousToSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
+              NO_FROM_SNAPSHOT_YET, CREATE);
 
     } catch (IOException e) {
       throw new MountException("Could not set up directory for snapshotting or create initial snapshot", e);
@@ -155,6 +154,7 @@ public class MountManager implements Configurable {
     String localBackupPath =
         syncMountToCreate.getLocalPath().toString();
     fsNamesystem.allowSnapshot(localBackupPath);
+    fsNamesystem.createSnapshot(localBackupPath, NO_FROM_SNAPSHOT_YET, true);
     try {
       setXattrForBackupMount(syncMountToCreate);
     } catch (IOException e) {
@@ -244,7 +244,7 @@ public class MountManager implements Configurable {
    * @return Unique name identifying the backup
    */
   protected String generateBackupName() {
-    throw new UnsupportedOperationException();
+    return UUID.randomUUID().toString();
   }
 
   private SyncMount getBackupMountByName(String name) throws MountException {
@@ -281,8 +281,17 @@ public class MountManager implements Configurable {
 
   public SnapshotDiffReport makeSnapshotAndPerformDiff(Path localBackupPath)
       throws IOException {
-    String fromSnapshotName = getBackingUpFromSnapshotName(localBackupPath);
+    String fromSnapshotName = getBackingUpPreviousToSnapshotName(localBackupPath);
+    deleteBackingUpPreviousFromSnapshot(localBackupPath);
     return makeSnapshotAndPerformDiffInternal(localBackupPath, fromSnapshotName);
+  }
+
+  private void deleteBackingUpPreviousFromSnapshot(Path localBackupPath) throws IOException{
+    String previousFromSnapshotName = getBackingUpPreviousFromSnapshotName(localBackupPath);
+    if (NO_FROM_SNAPSHOT_YET.equals(previousFromSnapshotName)) {
+      return;
+    }
+    fsNamesystem.deleteSnapshot(localBackupPath.toString(), previousFromSnapshotName, true);
   }
 
   public SnapshotDiffReport makeSnapshotAndPerformDiffInternal(Path localBackupPath,
@@ -290,10 +299,10 @@ public class MountManager implements Configurable {
       throws IOException {
 
     String toSnapshotName = Snapshot.generateDefaultSnapshotName();
+    storeBackingUpPreviousToSnapshotNameAsXAttr(localBackupPath, toSnapshotName, REPLACE);
+    storeBackingUpPreviousFromSnapshotNameAsXAttr(localBackupPath, fromSnapshotName, REPLACE);
     fsNamesystem.createSnapshot(localBackupPath.toString(), toSnapshotName,
-        true);
-    storeBackingUpFromSnapshotNameAsXAttr(localBackupPath, toSnapshotName,
-        REPLACE);
+            true);
 
     if (NO_FROM_SNAPSHOT_YET.equals(fromSnapshotName)) {
       //initial case
@@ -307,16 +316,26 @@ public class MountManager implements Configurable {
 
     // Deleting the snapshot here means that figuring out the 'from'
     // snapshot later on will not work.
-    //fsNamesystem.deleteSnapshot(localBackupPath.toString(), fromSnapshotName,
-    //true);
+//    fsNamesystem.deleteSnapshot(localBackupPath.toString(), fromSnapshotName,
+//    true);
 
   }
 
-  private void storeBackingUpFromSnapshotNameAsXAttr(Path localBackupPath,
-      String snapshotName, XAttrSetFlag action) {
+  public SnapshotDiffReport performPreviousDiff(Path localBackupPath) throws IOException {
+    String fromSnapshotName = getBackingUpPreviousFromSnapshotName(localBackupPath);
+    String toSnapshotName = getBackingUpPreviousToSnapshotName(localBackupPath);
+    if (NO_FROM_SNAPSHOT_YET.equals(fromSnapshotName)) {
+      return performInitialDiff(localBackupPath, toSnapshotName);
+    } else {
+      return fsNamesystem.getSnapshotDiffReport(localBackupPath.toString(), fromSnapshotName, toSnapshotName);
+    }
+  }
+
+  private void storeBackingUpPreviousFromSnapshotNameAsXAttr(Path localBackupPath, String snapshotName,
+          XAttrSetFlag action) {
     XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
         .setNameSpace(USER)
-        .setName(PROVIDED_SYNC_FROM_SNAPSHOT_NAME)
+        .setName(PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME)
         .setValue(snapshotName.getBytes())
         .build();
 
@@ -327,6 +346,24 @@ public class MountManager implements Configurable {
     } catch (IOException e) {
       LOG.error("Could not set XAttr PROVIDED_BACKUP_BACKING_UP_FROM_SNAPSHOT_NAME on {}",
           localBackupPath.toString());
+    }
+  }
+
+  private void storeBackingUpPreviousToSnapshotNameAsXAttr(Path localBackupPath, String snapshotName,
+          XAttrSetFlag action) {
+    XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
+            .setNameSpace(USER)
+            .setName(PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME)
+            .setValue(snapshotName.getBytes())
+            .build();
+
+    try {
+      fsNamesystem.setXAttr(localBackupPath.toString(),
+                            backupFromSnapshotNameXattr,
+                            EnumSet.of(action), false);
+    } catch (IOException e) {
+      LOG.error("Could not set XAttr PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME on {}",
+                localBackupPath.toString());
     }
   }
 
@@ -358,21 +395,34 @@ public class MountManager implements Configurable {
     }
   }
 
-  private String getBackingUpFromSnapshotName(Path localBackupPath)
+  private String getBackingUpPreviousFromSnapshotName(Path localBackupPath)
       throws IOException {
     XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
         .setNameSpace(USER)
-        .setName(PROVIDED_SYNC_FROM_SNAPSHOT_NAME)
+        .setName(PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME)
         .build();
     List<XAttr> xAttrs = fsNamesystem.getXAttrs(localBackupPath.toString(),
         Lists.newArrayList(backupFromSnapshotNameXattr));
     return xAttrs.stream()
         .findFirst()
         .map(xAttr -> new String(xAttr.getValue()))
-        .orElseThrow(() -> new MountException("FIXME"));
+        .orElseThrow(() -> new MountException("Failed to get fromSnapshot from XArrt"));
 
   }
 
+  private String getBackingUpPreviousToSnapshotName(Path localBackupPath)
+          throws IOException {
+    XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
+            .setNameSpace(USER)
+            .setName(PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME)
+            .build();
+    List<XAttr> xAttrs = fsNamesystem.getXAttrs(localBackupPath.toString(),
+                                                Lists.newArrayList(backupFromSnapshotNameXattr));
+    return xAttrs.stream()
+                 .findFirst()
+                 .map(xAttr -> new String(xAttr.getValue()))
+                 .orElseThrow(() -> new MountException("Failed to get fromSnapshot from XArrt"));
+  }
 
   public Optional<SyncMount> addPossibleLocalBackupDir(INode inode, int snapshotId) {
     List<XAttr> xAttrs = XAttrStorage.readINodeXAttrs(inode.getSnapshotINode(snapshotId));
@@ -524,5 +574,18 @@ public class MountManager implements Configurable {
     SyncTaskStats stat = syncMounts.getOrDefault(syncMount,
         SyncTaskStats.empty());
     return stat.getBlockFailures();
+  }
+
+  public boolean emptyDiff(Path localPath) {
+    try {
+      String snapshotName = getBackingUpPreviousToSnapshotName(localPath);
+      SnapshotDiffReport diffReport = fsNamesystem
+              .getSnapshotDiffReport(localPath.toString(), snapshotName, "");
+      List<DiffReportEntry> diffList = diffReport.getDiffList();
+      return diffList.isEmpty();
+    } catch (IOException e) {
+      LOG.error("Failed to get SnapshotDiffReport for: {}", localPath.toString(), e);
+      return false;
+    }
   }
 }

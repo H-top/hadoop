@@ -148,6 +148,10 @@ public class SyncMonitor {
       if (inProgress.containsKey(syncMount.getName())) {
         scheduleNextWorkOnTracker(inProgress.get(syncMount.getName()), syncMount);
       } else {
+        if (mountManager.emptyDiff(syncMount.getLocalPath())) {
+          LOG.info("Empty diff report since last sync operation for {}", syncMount.getLocalPath());
+          continue;
+        }
         scheduleNewSyncMountSnapshotUpdate(syncMount);
       }
 

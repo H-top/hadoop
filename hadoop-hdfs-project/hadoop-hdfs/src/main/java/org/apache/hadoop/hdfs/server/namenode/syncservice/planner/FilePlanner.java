@@ -101,6 +101,15 @@ public class FilePlanner {
   public SyncTask createCreatedFileSyncTasks(int targetSnapshotId,
       INodeFile nodeFile, SyncMount syncMount, String targetName) throws IOException {
     URI remotePath = createRemotePath(syncMount, targetName);
+    while (nodeFile.isUnderConstruction()) {
+      try {
+        //TODO wait until file is not under construction
+        // If file is under construction, we may miss syncing blocks which are under construction
+        Thread.sleep(10);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
     BlockInfo[] nodeFileBlocks = nodeFile.getBlocks(targetSnapshotId);
     long blockCollectionId = nodeFile.getId();
     if (nodeFileBlocks == null || nodeFileBlocks.length == 0) {
@@ -120,6 +129,15 @@ public class FilePlanner {
     File source = convertPathToAbsoluteFile(sourcePath, syncMount.getLocalPath());
     INodeFile nodeFile = namesystem.getFSDirectory().getINode(
         source.getAbsolutePath()).asFile();
+    while (nodeFile.isUnderConstruction()) {
+      try {
+        //TODO wait until file is not under construction
+        // If file is under construction, we may miss syncing blocks which are under construction
+        Thread.sleep(10);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
     long blockCollectionId = nodeFile.getId();
     URI remotePath = createRemotePath(syncMount, targetName);
     LocatedBlocks locatedBlocks = getLocatedBlocks(targetSnapshotId, nodeFile);

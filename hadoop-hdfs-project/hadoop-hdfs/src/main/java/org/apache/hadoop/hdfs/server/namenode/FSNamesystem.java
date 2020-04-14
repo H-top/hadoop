@@ -6890,8 +6890,8 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
    * @throws SafeModeException
    * @throws IOException
    */
-  void deleteSnapshot(String snapshotRoot, String snapshotName,
-      boolean logRetryCache) throws IOException {
+  public void deleteSnapshot(String snapshotRoot, String snapshotName,
+          boolean logRetryCache) throws IOException {
     final String operationName = "deleteSnapshot";
     String rootPath = null;
     BlocksMapUpdateInfo blocksToBeDeleted = null;

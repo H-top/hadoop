@@ -141,7 +141,7 @@ public class SyncMonitor {
         break;
       }
       if (syncMount.isPaused()) {
-        LOG.info("Sync mount is paused");
+        LOG.info("SyncMount {} is paused", syncMount);
         continue;
       }
 
@@ -158,21 +158,21 @@ public class SyncMonitor {
     }
   }
 
-  public void fullResync(String syncMountId, BlockAliasMap.Reader<FileRegion> aliasMapReader) throws IOException {
+  public void resync(String syncMountId, BlockAliasMap.Reader<FileRegion> aliasMapReader) throws IOException {
     MountManager mountManager = namesystem.getMountManager();
     SyncMount syncMount = mountManager.getSyncMount(syncMountId);
     SnapshotDiffReport diffReport =
-        mountManager.forceInitialSnapshot(syncMount.getLocalPath());
+        mountManager.performPreviousDiff(syncMount.getLocalPath());
     int targetSnapshotId = getTargetSnapshotId(diffReport);
-    Optional<Integer> sourceSnapshotId = Optional.empty();
+    Optional<Integer> sourceSnapshotId = getSourceSnapshotId(diffReport);
     PhasedPlan planFromDiffReport = syncMountSnapshotUpdatePlanFactory.
         createPlanFromDiffReport(syncMount, diffReport, sourceSnapshotId,
             targetSnapshotId);
-    for (FileRegion fileRegion : aliasMapReader) {
-      //TODO add nonce
-      Path pathInAliasMap = fileRegion.getProvidedStorageLocation().getPath();
-      planFromDiffReport.filter(pathInAliasMap);
-    }
+//    for (FileRegion fileRegion : aliasMapReader) {
+//      //TODO add nonce, or seperate create and modify
+//      Path pathInAliasMap = fileRegion.getProvidedStorageLocation().getPath();
+//      planFromDiffReport.filter(pathInAliasMap);
+//    }
     SyncMountSnapshotUpdateTracker tracker =
         SyncMountSnapshotUpdateTrackerFactory.create(planFromDiffReport,
             aliasMapWriter, conf);

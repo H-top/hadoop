@@ -140,7 +140,7 @@ public class SyncServiceSatisfier implements Runnable {
   public void scheduleOnce() throws IOException {
     String resyncSyncMountId = this.fullResyncQueue.poll();
     if (resyncSyncMountId != null) {
-      syncMonitor.fullResync(resyncSyncMountId, createAliasMapReader(blockManager, conf));
+      syncMonitor.resync(resyncSyncMountId, createAliasMapReader(blockManager, conf));
     } else {
       syncMonitor.scheduleNextWork();
     }

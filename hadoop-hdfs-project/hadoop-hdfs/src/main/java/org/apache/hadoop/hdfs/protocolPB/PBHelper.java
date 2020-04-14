@@ -509,13 +509,15 @@ public class PBHelper {
       BlockSyncTaskProto syncTaskProto) {
     SyncTaskIdProto syncTaskIdProto = syncTaskProto.getSyncTaskId();
     UUID syncTaskId = convert(syncTaskIdProto);
+    ByteBuffer uploadHandle = ByteBuffer.allocate(syncTaskProto.getUploadHandle().size());
+    syncTaskProto.getUploadHandle().copyTo(uploadHandle);
     try {
       return new BlockSyncTask(syncTaskId,
           new URI(syncTaskProto.getUri()),
           PBHelperClient.convertLocatedBlocks(
               syncTaskProto.getLocatedBlocksList()),
           syncTaskProto.getPartNumber(),
-          syncTaskProto.getUploadHandle().asReadOnlyByteBuffer(),
+          uploadHandle,
           syncTaskProto.getOffset(),
           syncTaskProto.getLength(),
           syncTaskIdProto.getSyncMountId());
@@ -1214,6 +1216,7 @@ public class PBHelper {
     builder.setUri(blockSyncTask.getRemoteURI().toString());
     builder.setOffset(blockSyncTask.getOffset());
     builder.setLength(blockSyncTask.getLength());
+    builder.setSyncTaskId(convert(blockSyncTask.getSyncTaskId(), blockSyncTask.getSyncMountId()));
 
     return builder.build();
   }
@@ -1312,7 +1315,7 @@ public class PBHelper {
     }
 
     ByteBuffer byteBuffer =
-        (bytes == null) ? null : ByteBuffer.wrap(bytes).asReadOnlyBuffer();
+        (bytes == null) ? null : ByteBuffer.wrap(bytes);
     return new SyncTaskExecutionResult(byteBuffer, result.getNumberOfBytes());
   }
 

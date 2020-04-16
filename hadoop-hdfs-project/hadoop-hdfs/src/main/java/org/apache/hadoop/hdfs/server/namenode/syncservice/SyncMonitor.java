@@ -133,7 +133,7 @@ public class SyncMonitor {
 
     MountManager mountManager = namesystem.getMountManager();
     List<SyncMount> syncMounts = mountManager.getSyncMounts();
-
+    // TODO use thread pool for each syncmount sync
     for (SyncMount syncMount : syncMounts) {
       if (namesystem.isInSafeMode()) {
         LOG.debug("Skipping synchronization of SyncMounts as the " +
@@ -228,13 +228,14 @@ public class SyncMonitor {
         SyncMountSnapshotUpdateTracker tracker =
             SyncMountSnapshotUpdateTrackerFactory.create(planFromDiffReport,
                 aliasMapWriter, conf);
+        inProgress.put(syncMount.getName(), tracker);
         scheduleNextWorkOnTracker(tracker, syncMount);
       }
     }
   }
 
   private void scheduleNextWorkOnTracker(SyncMountSnapshotUpdateTracker tracker, SyncMount syncMount) {
-    inProgress.put(syncMount.getName(), tracker);
+//    inProgress.put(syncMount.getName(), tracker);
     SchedulableSyncPhase schedulableSyncPhase = tracker.getNextSchedulablePhase();
     syncTaskScheduler.schedule(schedulableSyncPhase);
   }

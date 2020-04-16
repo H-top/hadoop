@@ -83,7 +83,7 @@ public class BlockSyncOperationExecutor  {
 
   public SyncTaskExecutionResult execute(BlockSyncTask blockSyncTask)
       throws Exception {
-    LOG.info("Executing MetadataSyncTask {} (on {})",
+    LOG.info("Executing BlockSyncTask {} (on {})",
         blockSyncTask.getSyncTaskId(), blockSyncTask.getRemoteURI());
 
       return doMultiPartPart(
@@ -115,8 +115,13 @@ public class BlockSyncOperationExecutor  {
     SequenceInputStream inputStream =
         new SequenceInputStream(streamEnumeration);
     MultipartUploader mpu = multipartUploaderSupplier.apply(fs);
+    ByteBuffer uploadHandleCopy = ByteBuffer.allocate(uploadHandle.capacity());
+    uploadHandle.rewind();
+    uploadHandleCopy.put(uploadHandle);
+    uploadHandle.rewind();
+    uploadHandleCopy.flip();
     PartHandle partHandle = mpu.putPart(filePath, inputStream,
-        partNumber, BBUploadHandle.from(uploadHandle), length);
+        partNumber, BBUploadHandle.from(uploadHandleCopy), length);
     return new SyncTaskExecutionResult(partHandle.bytes(), length);
   }
 }

@@ -17,6 +17,7 @@
 package org.apache.hadoop.hdfs.server.namenode.syncservice.scheduler;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation;
@@ -43,6 +44,7 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
   private final SyncServiceSatisfier syncServiceSatisfier;
   private final Consumer<MetadataSyncTaskExecutionFeedback> updateStats;
   private BlockManager blockManager;
+  private int replication;
 
   public NameNodeSyncTaskSequentialSchedulerImpl(
       SyncServiceSatisfier syncServiceSatisfier,
@@ -54,6 +56,8 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
     this.updateStats = updateStats;
     this.syncOperationExecutor =
         MetadataSyncOperationExecutor.createOnNameNode(conf);
+    this.replication = conf.getInt(DFSConfigKeys.DFS_REPLICATION_KEY, DFSConfigKeys.DFS_REPLICATION_DEFAULT);
+
   }
 
   @Override
@@ -91,7 +95,8 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
         Block localBlock = extendedBlock.getLocalBlock();
 
         BlockInfo blockInfo = new BlockInfoContiguous(localBlock,
-            (short) extendedBlock.getNumBytes());
+            //TODO not block bytes, should be replication number (replication in config file or block replica number)
+            (short) replication);
         blockInfo.setBlockCollectionId(completeMetadataSyncTask.getBlockCollectionId());
         this.blockManager.processProvidedBlockReport(blockInfo, localBlock);
       }

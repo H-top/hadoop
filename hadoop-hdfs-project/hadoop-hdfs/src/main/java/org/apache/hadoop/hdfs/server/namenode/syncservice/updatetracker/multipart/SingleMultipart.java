@@ -102,7 +102,12 @@ public class SingleMultipart {
       List<LocatedBlock> locatedBlocks, ByteBuffer uploadHandle) {
     List<BlockSyncTask> puts = Lists.newArrayList();
     for (int i = 0; i < locatedBlocks.size(); i++) {
-      BlockSyncTask put = createPart(current, locatedBlocks, uploadHandle, i);
+      ByteBuffer uploadHandleCopy = ByteBuffer.allocate(uploadHandle.capacity());
+      uploadHandle.rewind();
+      uploadHandleCopy.put(uploadHandle);
+      uploadHandle.rewind();
+      uploadHandleCopy.flip();
+      BlockSyncTask put = createPart(current, locatedBlocks, uploadHandleCopy, i);
       puts.add(put);
     }
     return puts;

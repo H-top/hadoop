@@ -102,7 +102,7 @@ public class S3AMultipartUploader extends MultipartUploader {
     String eTag = result.getETag();
     return BBPartHandle.from(
         ByteBuffer.wrap(
-            buildPartHandlePayload(eTag, lengthInBytes)));
+            buildPartHandlePayload(eTag, partNumber, lengthInBytes)));
   }
 
   @Override
@@ -127,9 +127,9 @@ public class S3AMultipartUploader extends MultipartUploader {
     long totalLength = 0;
     for (Map.Entry<Integer, PartHandle> handle : handles) {
       byte[] payload = handle.getValue().toByteArray();
-      Pair<Long, String> result = parsePartHandlePayload(payload);
+      Pair<Long, Pair<Integer, String>> result = parsePartHandlePayload(payload);
       totalLength += result.getLeft();
-      eTags.add(new PartETag(handle.getKey(), result.getRight()));
+      eTags.add(new PartETag(result.getRight().getLeft(), result.getRight().getRight()));
     }
     AtomicInteger errorCount = new AtomicInteger(0);
     CompleteMultipartUploadResult result = writeHelper.completeMPUwithRetries(
@@ -167,12 +167,13 @@ public class S3AMultipartUploader extends MultipartUploader {
   /**
    * Build the payload for marshalling.
    * @param eTag upload etag
+   * @param partNumber part number
    * @param len length
    * @return a byte array to marshall.
    * @throws IOException error writing the payload
    */
   @VisibleForTesting
-  static byte[] buildPartHandlePayload(String eTag, long len)
+  static byte[] buildPartHandlePayload(String eTag, int partNumber, long len)
       throws IOException {
     Preconditions.checkArgument(StringUtils.isNotEmpty(eTag),
         "Empty etag");
@@ -182,6 +183,7 @@ public class S3AMultipartUploader extends MultipartUploader {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream();
     try(DataOutputStream output = new DataOutputStream(bytes)) {
       output.writeUTF(HEADER);
+      output.writeInt(partNumber);
       output.writeLong(len);
       output.writeUTF(eTag);
     }
@@ -191,11 +193,11 @@ public class S3AMultipartUploader extends MultipartUploader {
   /**
    * Parse the payload marshalled as a part handle.
    * @param data handle data
-   * @return the length and etag
+   * @return the partNumber, length and etag
    * @throws IOException error reading the payload
    */
   @VisibleForTesting
-  static Pair<Long, String> parsePartHandlePayload(byte[] data)
+  static Pair<Long, Pair<Integer, String>> parsePartHandlePayload(byte[] data)
       throws IOException {
 
     try(DataInputStream input =
@@ -204,12 +206,16 @@ public class S3AMultipartUploader extends MultipartUploader {
       if (!HEADER.equals(header)) {
         throw new IOException("Wrong header string: \"" + header + "\"");
       }
+      final int partNumber = input.readInt();
+      if (partNumber < 0) {
+        throw new IOException("Negative part number");
+      }
       final long len = input.readLong();
       final String etag = input.readUTF();
       if (len < 0) {
         throw new IOException("Negative length");
       }
-      return Pair.of(len, etag);
+      return Pair.of(len, Pair.of(partNumber, etag));
     }
   }
 

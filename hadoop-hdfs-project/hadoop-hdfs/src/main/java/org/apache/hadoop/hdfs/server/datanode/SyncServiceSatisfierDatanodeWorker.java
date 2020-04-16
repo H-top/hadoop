@@ -41,6 +41,7 @@ public class SyncServiceSatisfierDatanodeWorker {
   private SyncTaskExecutionFeedbackCollector syncTaskExecutionFeedbackCollector;
 
   public SyncServiceSatisfierDatanodeWorker(Configuration conf, DataNode dataNode) throws IOException {
+    // TODO: start executor service in #start method
     this.executorService = HadoopExecutors.newFixedThreadPool(4);
     this.syncOperationExecutor =
         BlockSyncOperationExecutor.createOnDataNode(conf,

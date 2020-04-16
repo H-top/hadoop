@@ -511,6 +511,7 @@ public class PBHelper {
     UUID syncTaskId = convert(syncTaskIdProto);
     ByteBuffer uploadHandle = ByteBuffer.allocate(syncTaskProto.getUploadHandle().size());
     syncTaskProto.getUploadHandle().copyTo(uploadHandle);
+    uploadHandle.flip();
     try {
       return new BlockSyncTask(syncTaskId,
           new URI(syncTaskProto.getUri()),

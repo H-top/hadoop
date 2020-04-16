@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.nio.file.AccessDeniedException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -80,8 +81,10 @@ import com.amazonaws.services.s3.transfer.model.CopyResult;
 import com.amazonaws.services.s3.transfer.model.UploadResult;
 import com.amazonaws.event.ProgressListener;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import org.apache.hadoop.fs.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,11 +93,6 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonPathCapabilities;
-import org.apache.hadoop.fs.CreateFlag;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.Globber;
 import org.apache.hadoop.fs.s3a.auth.SignerManager;
 import org.apache.hadoop.fs.s3a.auth.delegation.DelegationTokenProvider;
 import org.apache.hadoop.fs.s3a.impl.ChangeDetectionPolicy;
@@ -114,19 +112,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.util.DurationInfo;
 import org.apache.hadoop.util.LambdaUtils;
-import org.apache.hadoop.fs.FileAlreadyExistsException;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.GlobalStorageStatistics;
-import org.apache.hadoop.fs.InvalidRequestException;
-import org.apache.hadoop.fs.LocalDirAllocator;
-import org.apache.hadoop.fs.LocalFileSystem;
-import org.apache.hadoop.fs.LocatedFileStatus;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.fs.PathIOException;
-import org.apache.hadoop.fs.RemoteIterator;
-import org.apache.hadoop.fs.StreamCapabilities;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.fs.s3a.auth.RoleModel;
 import org.apache.hadoop.fs.s3a.auth.delegation.AWSPolicyProvider;
@@ -4437,6 +4422,36 @@ public class S3AFileSystem extends FileSystem implements StreamCapabilities,
     @Override
     public String getBucketLocation() throws IOException {
       return S3AFileSystem.this.getBucketLocation();
+    }
+  }
+
+  @Override
+  protected PathHandle createPathHandle(FileStatus stat, Options.HandleOpt... opts) {
+    if (stat.isDirectory() || stat.isSymlink()) {
+      throw new IllegalArgumentException("PathHandle only available for files");
+    }
+    if (!getUri().getAuthority().equals(stat.getPath().toUri().getAuthority())) {
+      throw new IllegalArgumentException("Wrong FileSystem: " + stat.getPath());
+    }
+    Options.HandleOpt.Data data =
+            Options.HandleOpt.getOpt(Options.HandleOpt.Data.class, opts)
+                             .orElse(Options.HandleOpt.changed(false));
+    Options.HandleOpt.Location loc =
+            Options.HandleOpt.getOpt(Options.HandleOpt.Location.class, opts)
+                             .orElse(Options.HandleOpt.moved(false));
+    if (loc.allowChange()) {
+      throw new UnsupportedOperationException("Tracking file movement in " +
+              "S3 FileSystem is not supported");
+    }
+    final Path p = stat.getPath();
+    ObjectMetadata objectMetadata;
+    try {
+      objectMetadata = getObjectMetadata(p);
+      byte[] eTag = objectMetadata.getETag().getBytes(Charsets.UTF_8);
+      return (PathHandle) () -> ByteBuffer.wrap(eTag);
+    } catch (IOException e) {
+      LOG.error("Failed to get object metadata");
+      return (PathHandle) () -> ByteBuffer.wrap(new byte[0]);
     }
   }
 }

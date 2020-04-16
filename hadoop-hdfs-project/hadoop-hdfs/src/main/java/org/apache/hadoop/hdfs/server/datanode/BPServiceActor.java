@@ -535,9 +535,10 @@ class BPServiceActor implements Runnable {
             SlowDiskReports.create(dn.getDiskMetrics().getDiskOutliersStats()) :
             SlowDiskReports.EMPTY_REPORT;
 
-    // TODO - collect feedback from SyncTasks here.
     BulkSyncTaskExecutionFeedback bulkSyncTaskExecutionFeedback =
-        new BulkSyncTaskExecutionFeedback(Collections.emptyList());
+            dn.getSyncServiceSatisfierDatanodeWorker()
+            .getSyncTaskExecutionFeedbackCollector()
+            .packageFeedbackForHeartbeat();
 
     HeartbeatResponse response = bpNamenode.sendHeartbeat(bpRegistration,
         reports,

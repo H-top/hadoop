@@ -116,12 +116,13 @@ public class SyncServiceSatisfier implements Runnable {
     if (syncServiceSatisfierThread == null) {
       return;
     }
-    if (isRunning) {
-      stop();
-    }
     try {
       syncServiceSatisfierThread.join(3000);
     } catch (InterruptedException ie) {
+      LOG.error("syncservice interrupted while stopped");
+    }
+    if (isRunning) {
+      stop();
     }
   }
 

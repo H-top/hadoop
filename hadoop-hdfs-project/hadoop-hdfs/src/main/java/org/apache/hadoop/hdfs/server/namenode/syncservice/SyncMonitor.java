@@ -182,22 +182,22 @@ public class SyncMonitor {
    * 对syncmount进行full resync，创建新的tracker
    * no need for full resync, just resync task between fromSnapshot and toSnapshot
    */
-  public void fullResync(String syncMountId, BlockAliasMap.Reader<FileRegion> aliasMapReader) throws IOException {
+  public void resync(String syncMountId, BlockAliasMap.Reader<FileRegion> aliasMapReader) throws IOException {
     MountManager mountManager = namesystem.getMountManagerSync();
     SyncMount syncMount = mountManager.getSyncMount(syncMountId);
     //TODO get diffreport between previous fromSnapshot and toSnapshot
     SnapshotDiffReport diffReport =
-        mountManager.forceInitialSnapshot(syncMount.getLocalPath());
+        mountManager.performPreviousDiff(syncMount.getLocalPath());
     int targetSnapshotId = getTargetSnapshotId(diffReport);
-    Optional<Integer> sourceSnapshotId = Optional.empty();
+    Optional<Integer> sourceSnapshotId = getSourceSnapshotId(diffReport);
     PhasedPlan planFromDiffReport = syncMountSnapshotUpdatePlanFactory.
         createPlanFromDiffReport(syncMount, diffReport, sourceSnapshotId,
             targetSnapshotId);
-    for (FileRegion fileRegion : aliasMapReader) {
-      //TODO add nonce SyncMountSnapshotUpdateTrackerImpl#finalizeRenameFileTask
-      Path pathInAliasMap = fileRegion.getProvidedStorageLocation().getPath();
-      planFromDiffReport.filter(pathInAliasMap);
-    }
+//    for (FileRegion fileRegion : aliasMapReader) {
+//      //TODO add nonce SyncMountSnapshotUpdateTrackerImpl#finalizeRenameFileTask
+//      Path pathInAliasMap = fileRegion.getProvidedStorageLocation().getPath();
+//      planFromDiffReport.filter(pathInAliasMap);
+//    }
     SyncMountSnapshotUpdateTracker tracker =
         SyncMountSnapshotUpdateTrackerFactory.create(planFromDiffReport,
             aliasMapWriter, conf);

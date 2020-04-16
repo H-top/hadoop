@@ -32,6 +32,7 @@ import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import com.google.common.collect.Lists;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.fs.StorageType;
@@ -572,6 +573,20 @@ public class DatanodeDescriptor extends DatanodeInfo {
     }
   }
 
+  public int getNumberOfSyncTasksToTransfer() {
+    return plannedSyncTasks.size();
+  }
+
+  public List<BlockSyncTask> getSyncTasksToTransfer(int maxTask) {
+    int maxTaskCount = maxTask;
+    synchronized (plannedSyncTasks) {
+      List<BlockSyncTask> syncTasksToTransfer = Lists.newArrayList();
+      for (; !plannedSyncTasks.isEmpty() && maxTaskCount > 0; maxTaskCount--) {
+        syncTasksToTransfer.add(plannedSyncTasks.poll());
+      }
+      return syncTasksToTransfer;
+    }
+  }
   /**
    * Remove stale storages from storageMap. We must not remove any storages
    * as long as they have associated block replicas.

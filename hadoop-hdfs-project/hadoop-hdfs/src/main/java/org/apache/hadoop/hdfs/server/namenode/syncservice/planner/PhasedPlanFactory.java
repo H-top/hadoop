@@ -105,7 +105,7 @@ public class PhasedPlanFactory {
 
     createsSyncTasks.addAllFileSync(modifiedSyncTasks);
 
-    return new PhasedPlan(renameToTemporaryName, deleteSyncTasks.getAllTasks(),
+    return new PhasedPlan(renameToTemporaryName, deleteSyncTasks.getAllTasksForDelete(),
         renameToFinalName, createsSyncTasks.getDirTasks(),
         createsSyncTasks.getFileTasks(), conf);
   }
@@ -227,8 +227,7 @@ public class PhasedPlanFactory {
       return directoryPlanner.createPlanForDirectory(diffEntry,
           deleteEntry.getTranslatedName(), syncMount, sourceSnapshotId);
     } else if (diffEntry.getInodeType() == SnapshotDiffReport.INodeType.FILE) {
-      URI sourceRemoteURI = createRemotePath(syncMount,
-          DFSUtil.bytes2String(diffEntry.getSourcePath()));
+      URI sourceRemoteURI = createRemotePath(syncMount, deleteEntry.getTranslatedName());
       FileAndDirsSyncTasks plan = new FileAndDirsSyncTasks();
       try {
         INodeFile iNodeFile = filePlanner.getINodeFile4Snapshot(syncMount,
@@ -274,12 +273,10 @@ public class PhasedPlanFactory {
           createEntry.getTranslatedName(), syncMount, targetSnapshotId);
       return plan;
     } else if (diffEntry.getInodeType() == SnapshotDiffReport.INodeType.FILE) {
-      URI sourceRemoteURI = createRemotePath(syncMount,
-          DFSUtil.bytes2String(diffEntry.getSourcePath()));
       try {
         FileAndDirsSyncTasks plan = new FileAndDirsSyncTasks();
         SyncTask createFile = filePlanner.createPlanTreeNodeForCreatedFile(syncMount,
-            targetSnapshotId, diffEntry, sourceRemoteURI);
+            targetSnapshotId, diffEntry, createEntry.getTranslatedName());
         plan.addFileSync(createFile);
         return plan;
       } catch (IOException e) {
@@ -317,10 +314,9 @@ public class PhasedPlanFactory {
                   syncMount, targetSnapshotId);
           plan.append(planForCreatedDirectory);
         } else if (createEntry.getInodeType() == SnapshotDiffReport.INodeType.FILE) {
-          URI sourceRemoteURI = createRemotePath(syncMount,
-              DFSUtil.bytes2String(createEntry.getSourcePath()));
+          String targetName = DFSUtil.bytes2String(createEntry.getSourcePath());
           SyncTask metadataSyncTask = filePlanner.createPlanTreeNodeForCreatedFile(syncMount,
-              targetSnapshotId, createEntry, sourceRemoteURI);
+              targetSnapshotId, createEntry, targetName);
           plan.addFileSync(metadataSyncTask);
         } else {
           LOG.info("Unsupported INode type: {}", createEntry.getInodeType());
@@ -370,11 +366,12 @@ public class PhasedPlanFactory {
         SyncTask modifyFile =
             filePlanner.createModifiedFileSyncTasks(targetSnapshotId,
                 diffEntry.getSourcePath(),
+                modifiedEntry.getTranslatedName(),
                 syncMount);
         return Optional.of(modifyFile);
       } catch (IOException e) {
         //TODO Handle errors
-        throw new RuntimeException(e);
+        throw new RuntimeException("Error creating ModifiedSyncTask for " + modifiedEntry.getTranslatedName());
       }
     } else {
       LOG.info("Unsupported INode type: {}", diffEntry.getInodeType());

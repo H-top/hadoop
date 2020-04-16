@@ -205,6 +205,8 @@ public class DatanodeManager {
   private final SlowPeerTracker slowPeerTracker;
   @Nullable
   private final SlowDiskTracker slowDiskTracker;
+
+  private final int maxBackupCommandsPerHeartbeat;
   
   /**
    * The minimum time between resending caching directives to Datanodes,
@@ -250,6 +252,9 @@ public class DatanodeManager {
     this.slowDiskTracker = dataNodeDiskStatsEnabled ?
         new SlowDiskTracker(conf, timer) : null;
 
+    this.maxBackupCommandsPerHeartbeat = conf.getInt(
+            DFSConfigKeys.DFS_PROVIDED_HEARTBEAT_BACKUP_NUM,
+            DFSConfigKeys.DFS_PROVIDED_HEARTBEAT_BACKUP_NUM_DEFAULT);
     this.defaultXferPort = NetUtils.createSocketAddr(
           conf.getTrimmed(DFSConfigKeys.DFS_DATANODE_ADDRESS_KEY,
               DFSConfigKeys.DFS_DATANODE_ADDRESS_DEFAULT)).getPort();
@@ -1804,6 +1809,14 @@ public class DatanodeManager {
         }
         slowDiskTracker.addSlowDiskReport(nodeReg.getIpcAddr(false), slowDisks);
       }
+    }
+
+    // add synctask commands
+    int totalSyncTasks = nodeinfo.getNumberOfSyncTasksToTransfer();
+    final int numFilesToBackup = Math.min(maxBackupCommandsPerHeartbeat, totalSyncTasks);
+    List<BlockSyncTask> syncTasksToTransfer = nodeinfo.getSyncTasksToTransfer(numFilesToBackup);
+    if (!syncTasksToTransfer.isEmpty()) {
+      cmds.add(new SyncCommand(DatanodeProtocol.DNA_BACKUP, syncTasksToTransfer));
     }
 
     if (!cmds.isEmpty()) {

@@ -5589,6 +5589,14 @@
   </property>
 
   <property>
+    <name>dfs.provided.heartbeat.backup.num</name>
+    <value>10</value>
+    <description>
+      The amount of backup instructions that will be handled on the datanode per heartbeat
+    </description>
+  </property>
+
+  <property>
     <name>dfs.lock.suppress.warning.interval</name>
     <value>10s</value>
     <description>Instrumentation reporting long critical sections will suppress

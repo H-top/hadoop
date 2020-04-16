@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.net.URI;
 
 import static org.apache.hadoop.hdfs.protocol.HdfsConstants.DOT_SNAPSHOT_DIR;
+import static org.apache.hadoop.hdfs.server.namenode.syncservice.RemoteSyncURICreator.createRemotePath;
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.RemoteSyncURICreator.createRemotePathFromAbsolutePath;
 
 /**
@@ -107,15 +108,14 @@ public class DirectoryPlanner {
         absolutePath = convertPathToAbsoluteFile(path,
             syncMount.getLocalPath(), snapshotName).getAbsolutePath();
       } else {
-        absolutePath = convertPathToAbsoluteFile(path,
+        absolutePath = convertPathToAbsoluteFile(targetName.getBytes(),
             syncMount.getLocalPath()).getAbsolutePath();
       }
       //获取到inode目录，不是SNAPSHOT的形式（/backupPath/path）
       INodeDirectory nodeDir = fsDirectory.getINode(absolutePath).asDirectory();
       FileAndDirsSyncTasks plan = new FileAndDirsSyncTasks();
 
-      URI remotePath = createRemotePathFromAbsolutePath(syncMount,
-          nodeDir.getFullPathName());
+      URI remotePath = createRemotePath(syncMount, targetName);
       switch (diffEntry.getType()) {
       case CREATE:
         SyncTask.CreateDirectorySyncTask createDir = SyncTask.createDirectory(remotePath,
@@ -134,7 +134,7 @@ public class DirectoryPlanner {
       //处理目录下的子目录
       for (INode inode : nodeDir.getChildrenList(snapshotId)) {
         FileAndDirsSyncTasks subPlan =
-            createPlanForINode(diffEntry, snapshotId, inode, syncMount);
+            createPlanForINode(diffEntry, snapshotId, inode, syncMount, targetName);
         plan.append(subPlan);
       }
 
@@ -147,27 +147,29 @@ public class DirectoryPlanner {
 
   private FileAndDirsSyncTasks createPlanForINode(
       DiffReportEntry diffEntry, int snapshotId, INode node,
-      SyncMount syncMount) throws IOException {
+      SyncMount syncMount, String parentTargetName) throws IOException {
 
     File fullPath = new File(node.getFullPathName());
+    String targetName = parentTargetName + "/" + node.toString();
+    File targetPath = new File(targetName);
     if (syncServiceFileFilter.isExcluded(fullPath)) {
       return new FileAndDirsSyncTasks();
     } else if (node.isDirectory()) {
       return recursivelyCreateSyncTaskFromINodeDirectory(diffEntry, snapshotId,
-          node.asDirectory(), syncMount);
+          node.asDirectory(), syncMount, targetName);
     } else if (node.isFile()) {
       switch (diffEntry.getType()) {
       case CREATE: {
         SyncTask createdFile =
             filePlanner.createCreatedFileSyncTasks(snapshotId, node.asFile(),
-                syncMount);
+                syncMount, targetName);
         FileAndDirsSyncTasks createFileAndDirs = new FileAndDirsSyncTasks();
         createFileAndDirs.addFileSync(createdFile);
         return createFileAndDirs;
       }
       case DELETE: {
         SyncTask deletedFile = filePlanner.createDeletedFileSyncTasks(
-            snapshotId, node.asFile(), syncMount);
+            snapshotId, node.asFile(), syncMount, targetName);
         FileAndDirsSyncTasks createFileAndDirs = new FileAndDirsSyncTasks();
         createFileAndDirs.addFileSync(deletedFile);
         return createFileAndDirs;
@@ -185,30 +187,35 @@ public class DirectoryPlanner {
 
   private FileAndDirsSyncTasks
   recursivelyCreateSyncTaskFromINodeDirectory(DiffReportEntry diffEntry,
-      int snapshotId, INodeDirectory nodeDir, SyncMount syncMount)
+      int snapshotId, INodeDirectory nodeDir, SyncMount syncMount, String targetName)
       throws IOException {
+    try {
+      byte[] path = diffEntry.getSourcePath();
+      FileAndDirsSyncTasks plan = new FileAndDirsSyncTasks();
 
-    FileAndDirsSyncTasks plan
-        = new FileAndDirsSyncTasks();
-    URI remotePath = createRemotePathFromAbsolutePath(syncMount,
-        nodeDir.getFullPathName());
-    SyncTask.CreateDirectorySyncTask createDir = SyncTask.createDirectory(remotePath,
-        syncMount.getName());
-
-    plan.addDirSync(createDir);
-
-    for (INode inode : nodeDir.getChildrenList(snapshotId)) {
-      File fullPath = new File(inode.getFullPathName());
-
-      if (!syncServiceFileFilter.isExcluded(fullPath)) {
-        FileAndDirsSyncTasks subPlan =
-            createPlanForINode(diffEntry, snapshotId, inode, syncMount);
-        plan.append(subPlan);
-      } else {
-        LOG.debug("Not backing up INode {} as excluded by filter", inode);
+      URI remotePath = createRemotePath(syncMount, targetName);
+      switch (diffEntry.getType()) {
+        case CREATE:
+          SyncTask.CreateDirectorySyncTask createDir = SyncTask.createDirectory(remotePath,
+                                                                                syncMount.getName());
+          plan.addDirSync(createDir);
+          break;
+        case DELETE:
+          SyncTask.DeleteDirectorySyncTask deleteDir = SyncTask.deleteDirectory(
+                  remotePath, syncMount.getName());
+          plan.addDirSync(deleteDir);
+          break;
+        default:
+          LOG.error("createPlanForDirectory called on directory that had diff {}",
+                    diffEntry.getInodeType());
       }
+      for (INode inode : nodeDir.getChildrenList(snapshotId)) {
+        FileAndDirsSyncTasks subPlan = createPlanForINode(diffEntry, snapshotId, inode, syncMount, targetName);
+        plan.append(subPlan);
+      }
+      return plan;
+    } catch (IOException e) {
+      throw new RuntimeException("Unhandled error when creating sync service plan", e);
     }
-
-    return plan;
   }
 }

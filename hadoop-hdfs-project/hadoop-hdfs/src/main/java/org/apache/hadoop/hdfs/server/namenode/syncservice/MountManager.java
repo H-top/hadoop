@@ -69,8 +69,10 @@ import static org.apache.hadoop.fs.XAttrSetFlag.REPLACE;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class MountManager implements Configurable {
-  public static final String PROVIDED_SYNC_FROM_SNAPSHOT_NAME =
+  public static final String PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME =
       "PROVIDED_SYNC_FROM_SNAPSHOT_NAME";
+  public static final String PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME =
+          "PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME";
   public static final String PROVIDED_SYNC_MOUNT_DETAILS =
       "PROVIDED_SYNC_MOUNT_DETAILS";
   public static final String NO_FROM_SNAPSHOT_YET = "no_snapshot_yet";
@@ -108,7 +110,9 @@ public class MountManager implements Configurable {
       //enable mount dir的snapshot，并设置该dir的xattr（包含了syncmount的信息）
       setUpFileSystemForSnapshotting(syncMountToCreate);
       //设置另一个xattr，因为是新建，value为：no_snapshot_yet（由此判定该路径下是否有改动？？？）
-      storeBackingUpFromSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
+      storeBackingUpPreviousFromSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
+          NO_FROM_SNAPSHOT_YET, CREATE);
+      storeBackingUpPreviousToSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
           NO_FROM_SNAPSHOT_YET, CREATE);
 
     } catch (IOException e) {
@@ -279,9 +283,19 @@ public class MountManager implements Configurable {
   public SnapshotDiffReport makeSnapshotAndPerformDiff(Path localBackupPath)
       throws IOException {
     //获取path对应的snapshot name
-    String fromSnapshotName = getBackingUpFromSnapshotName(localBackupPath);
+    String fromSnapshotName = getBackingUpPreviousToSnapshotName(localBackupPath);
+    deleteBackingUpPreviousFromSnapshot(localBackupPath);
     return makeSnapshotAndPerformDiffInternal(localBackupPath, fromSnapshotName);
   }
+
+  private void deleteBackingUpPreviousFromSnapshot(Path localBackupPath) throws IOException {
+    String previousFromSnapshotName = getBackingUpPreviousFromSnapshotName(localBackupPath);
+    if (NO_FROM_SNAPSHOT_YET.equals(previousFromSnapshotName)) {
+      return;
+    }
+    fsNamesystem.deleteSnapshot(localBackupPath.toString(), previousFromSnapshotName, true);
+  }
+
 //创建snapshot，将当前snapshot name设置到xattr，并比较与前一个snapshot的diff
   public SnapshotDiffReport makeSnapshotAndPerformDiffInternal(Path localBackupPath,
       String fromSnapshotName)
@@ -290,8 +304,8 @@ public class MountManager implements Configurable {
     String toSnapshotName = Snapshot.generateDefaultSnapshotName();
     fsNamesystem.createSnapshot(localBackupPath.toString(), toSnapshotName,
         true);
-    storeBackingUpFromSnapshotNameAsXAttr(localBackupPath, toSnapshotName,
-        REPLACE);
+    storeBackingUpPreviousToSnapshotNameAsXAttr(localBackupPath, toSnapshotName, REPLACE);
+    storeBackingUpPreviousFromSnapshotNameAsXAttr(localBackupPath, fromSnapshotName, REPLACE);
 
     if (NO_FROM_SNAPSHOT_YET.equals(fromSnapshotName)) {
       //initial case
@@ -309,22 +323,51 @@ public class MountManager implements Configurable {
     //true);
 
   }
-//将snapshot name设置为xattr，从而跟踪dir snapshot name的变化
-  private void storeBackingUpFromSnapshotNameAsXAttr(Path localBackupPath,
-      String snapshotName, XAttrSetFlag action) {
+
+  //将snapshot name设置为xattr，从而跟踪dir snapshot name的变化
+  public SnapshotDiffReport performPreviousDiff(Path localBackupPath) throws IOException {
+    String fromSnapshotName = getBackingUpPreviousFromSnapshotName(localBackupPath);
+    String toSnapshotName = getBackingUpPreviousToSnapshotName(localBackupPath);
+    if (NO_FROM_SNAPSHOT_YET.equals(fromSnapshotName)) {
+      return performInitialDiff(localBackupPath, toSnapshotName);
+    } else {
+      return fsNamesystem.getSnapshotDiffReport(localBackupPath.toString(), fromSnapshotName, toSnapshotName);
+    }
+  }
+
+  private void storeBackingUpPreviousFromSnapshotNameAsXAttr(Path localBackupPath, String snapshotName,
+                                                             XAttrSetFlag action) {
     XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
-        .setNameSpace(USER)
-        .setName(PROVIDED_SYNC_FROM_SNAPSHOT_NAME)
-        .setValue(snapshotName.getBytes())
-        .build();
+            .setNameSpace(USER)
+            .setName(PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME)
+            .setValue(snapshotName.getBytes())
+            .build();
 
     try {
       fsNamesystem.setXAttr(localBackupPath.toString(),
-          backupFromSnapshotNameXattr,
-          EnumSet.of(action), false);
+                            backupFromSnapshotNameXattr,
+                            EnumSet.of(action), false);
     } catch (IOException e) {
       LOG.error("Could not set XAttr PROVIDED_BACKUP_BACKING_UP_FROM_SNAPSHOT_NAME on {}",
-          localBackupPath.toString());
+                localBackupPath.toString());
+    }
+  }
+
+  private void storeBackingUpPreviousToSnapshotNameAsXAttr(Path localBackupPath, String snapshotName,
+                                                           XAttrSetFlag action) {
+    XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
+            .setNameSpace(USER)
+            .setName(PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME)
+            .setValue(snapshotName.getBytes())
+            .build();
+
+    try {
+      fsNamesystem.setXAttr(localBackupPath.toString(),
+                            backupFromSnapshotNameXattr,
+                            EnumSet.of(action), false);
+    } catch (IOException e) {
+      LOG.error("Could not set XAttr PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME on {}",
+                localBackupPath.toString());
     }
   }
 
@@ -356,19 +399,32 @@ public class MountManager implements Configurable {
     }
   }
 
-  private String getBackingUpFromSnapshotName(Path localBackupPath)
+  private String getBackingUpPreviousFromSnapshotName(Path localBackupPath)
       throws IOException {
     XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
         .setNameSpace(USER)
-        .setName(PROVIDED_SYNC_FROM_SNAPSHOT_NAME)
+        .setName(PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME)
         .build();
     List<XAttr> xAttrs = fsNamesystem.getXAttrs(localBackupPath.toString(),
         Lists.newArrayList(backupFromSnapshotNameXattr));
     return xAttrs.stream()
         .findFirst()
         .map(xAttr -> new String(xAttr.getValue()))
-        .orElseThrow(() -> new MountException("FIXME"));
+        .orElseThrow(() -> new MountException("Failed to get fromSnapshot from XArrt"));
+  }
 
+  private String getBackingUpPreviousToSnapshotName(Path localBackupPath)
+          throws IOException {
+    XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
+            .setNameSpace(USER)
+            .setName(PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME)
+            .build();
+    List<XAttr> xAttrs = fsNamesystem.getXAttrs(localBackupPath.toString(),
+                                                Lists.newArrayList(backupFromSnapshotNameXattr));
+    return xAttrs.stream()
+                 .findFirst()
+                 .map(xAttr -> new String(xAttr.getValue()))
+                 .orElseThrow(() -> new MountException("Failed to get fromSnapshot from XArrt"));
   }
 
 //获取目录的syncmount

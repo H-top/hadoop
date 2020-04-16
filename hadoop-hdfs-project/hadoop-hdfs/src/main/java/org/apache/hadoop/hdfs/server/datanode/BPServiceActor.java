@@ -514,7 +514,9 @@ class BPServiceActor implements Runnable {
 
     // TODO - collect feedback from SyncTasks here.
     BulkSyncTaskExecutionFeedback bulkSyncTaskExecutionFeedback =
-        new BulkSyncTaskExecutionFeedback(Collections.emptyList());
+            dn.getSyncServiceSatisfierDatanodeWorker()
+            .getSyncTaskExecutionFeedbackCollector()
+            .packageFeedbackForHeartbeat();
 
     HeartbeatResponse response = bpNamenode.sendHeartbeat(bpRegistration,
         reports,

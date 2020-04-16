@@ -72,7 +72,7 @@ public class DataNodeSyncTaskSchedulerImpl implements DataNodeSyncTaskScheduler 
           blockSyncTask.getSyncTaskId(), datanodeDescriptor.getName());
       datanodeDescriptor.scheduleSyncTaskOnHeartbeat(blockSyncTask);
     } else {
-      throw new RuntimeException("TODO Could not schedule task");
+      scheduleOnRandomDatanode(blockSyncTask);
     }
   }
 

@@ -117,7 +117,6 @@ public class PartitionedDiffReport {
     List<TranslatedEntry> translatedDeletes =
         handleDeletes(renameEntries,
             diffReport, syncServiceFileFilter);
-    Collections.reverse(translatedDeletes);
 
     List<TranslatedEntry> translatedModifies =
         handleModifies(renameEntries,

@@ -1353,6 +1353,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
       if (blockManager.getSPSManager() != null) {
         blockManager.getSPSManager().start();
       }
+      blockManager.startSyncService();
     } finally {
       startingActiveService = false;
       blockManager.checkSafeMode();
@@ -1384,6 +1385,9 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
     try {
       if (blockManager != null && blockManager.getSPSManager() != null) {
         blockManager.getSPSManager().stop();
+      }
+      if (blockManager != null) {
+        blockManager.stopSyncService(false);
       }
       stopSecretManager();
       leaseManager.stopMonitor();
@@ -7033,7 +7037,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
    * @throws SafeModeException
    * @throws IOException
    */
-  void deleteSnapshot(String snapshotRoot, String snapshotName,
+  public void deleteSnapshot(String snapshotRoot, String snapshotName,
       boolean logRetryCache) throws IOException {
     final String operationName = "deleteSnapshot";
     boolean success = false;

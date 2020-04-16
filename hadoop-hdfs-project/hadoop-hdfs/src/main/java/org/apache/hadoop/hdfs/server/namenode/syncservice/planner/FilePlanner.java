@@ -36,6 +36,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.apache.hadoop.hdfs.server.namenode.syncservice.RemoteSyncURICreator.createRemotePath;
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.RemoteSyncURICreator.createRemotePathFromAbsolutePath;
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.planner.DirectoryPlanner.convertPathToAbsoluteFile;
 
@@ -65,17 +66,11 @@ public class FilePlanner {
    */
   public SyncTask createPlanTreeNodeForCreatedFile(SyncMount syncMount,
       int targetSnapshotId, SnapshotDiffReport.DiffReportEntry entry,
-      URI sourceRemoteURI) throws IOException {
+      String targetName) throws IOException {
     INodeFile iNodeFile = getINodeFile(syncMount, entry);
     long blockCollectionId = iNodeFile.getId();
     BlockInfo[] nodeFileBlocks = iNodeFile.getBlocks(targetSnapshotId);
-    if (nodeFileBlocks == null || nodeFileBlocks.length == 0) {
-      return createTouchFileSyncTasks(sourceRemoteURI, syncMount,
-          blockCollectionId);
-    } else {
-      return createCreatedFileSyncTasks(targetSnapshotId,
-          iNodeFile, syncMount);
-    }
+    return createCreatedFileSyncTasks(targetSnapshotId, iNodeFile, syncMount, targetName);
   }
   /**
    * 从snapshot中获取entry的INodeFile
@@ -118,9 +113,8 @@ public class FilePlanner {
    * 创建新建文件synctask（文件不为空）
    */
   public SyncTask createCreatedFileSyncTasks(int targetSnapshotId,
-      INodeFile nodeFile, SyncMount syncMount) throws IOException {
-    URI remotePath = createRemotePathFromAbsolutePath(syncMount,
-        nodeFile.getFullPathName());
+      INodeFile nodeFile, SyncMount syncMount, String targetName) throws IOException {
+    URI remotePath = createRemotePath(syncMount, targetName);
     BlockInfo[] nodeFileBlocks = nodeFile.getBlocks(targetSnapshotId);
     long blockCollectionId = nodeFile.getId();
     if (nodeFileBlocks == null || nodeFileBlocks.length == 0) {
@@ -136,13 +130,12 @@ public class FilePlanner {
   }
 
   public SyncTask createModifiedFileSyncTasks(int targetSnapshotId,
-      byte[] sourcePath, SyncMount syncMount) throws IOException {
+      byte[] sourcePath, String targetName, SyncMount syncMount) throws IOException {
     File source = convertPathToAbsoluteFile(sourcePath, syncMount.getLocalPath());
     INodeFile nodeFile = namesystem.getFSDirectory().getINode(
         source.getAbsolutePath()).asFile();
     long blockCollectionId = nodeFile.getId();
-    URI remotePath = createRemotePathFromAbsolutePath(syncMount,
-        nodeFile.getFullPathName());
+    URI remotePath = createRemotePath(syncMount, targetName);
     LocatedBlocks locatedBlocks = getLocatedBlocks(targetSnapshotId, nodeFile);
 
     /*
@@ -157,9 +150,8 @@ public class FilePlanner {
   }
 
   public SyncTask createDeletedFileSyncTasks(int targetSnapshotId,
-      INodeFile nodeFile, SyncMount syncMount) throws IOException {
-    URI remotePath = createRemotePathFromAbsolutePath(syncMount,
-        nodeFile.getFullPathName());
+      INodeFile nodeFile, SyncMount syncMount, String targetName) throws IOException {
+    URI remotePath = createRemotePath(syncMount, targetName);
     BlockInfo[] nodeFileBlocks = nodeFile.getBlocks(targetSnapshotId);
     if (nodeFileBlocks == null || nodeFileBlocks.length == 0) {
       return SyncTask.touchFile(remotePath, syncMount.getName(),

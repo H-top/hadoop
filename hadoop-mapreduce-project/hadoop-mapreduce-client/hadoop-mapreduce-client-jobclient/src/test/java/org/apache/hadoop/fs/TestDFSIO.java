@@ -189,22 +189,22 @@ public class TestDFSIO implements Tool {
     return conf.get("test.build.data","/benchmarks/TestDFSIO");
   }
   private static Path getControlDir(Configuration conf) {
-    return new Path(getBaseDir(conf), "io_control");
+    return new Path("/", "io_control");
   }
   private static Path getWriteDir(Configuration conf) {
-    return new Path(getBaseDir(conf), "io_write");
+    return new Path("/", "io_write");
   }
   private static Path getReadDir(Configuration conf) {
-    return new Path(getBaseDir(conf), "io_read");
+    return new Path("/", "io_read");
   }
   private static Path getAppendDir(Configuration conf) {
-    return new Path(getBaseDir(conf), "io_append");
+    return new Path("/", "io_append");
   }
   private static Path getRandomReadDir(Configuration conf) {
-    return new Path(getBaseDir(conf), "io_random_read");
+    return new Path("/", "io_random_read");
   }
   private static Path getTruncateDir(Configuration conf) {
-    return new Path(getBaseDir(conf), "io_truncate");
+    return new Path("/", "io_truncate");
   }
   private static Path getDataDir(Configuration conf) {
     return new Path(getBaseDir(conf), "io_data");

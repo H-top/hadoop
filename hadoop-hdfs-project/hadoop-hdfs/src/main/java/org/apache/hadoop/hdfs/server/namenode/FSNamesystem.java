@@ -113,6 +113,7 @@ import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.server.common.ECTopologyVerifier;
 import org.apache.hadoop.hdfs.server.common.ProvidedVolumeInfo;
 import org.apache.hadoop.hdfs.server.namenode.metrics.ReplicatedBlocksMBean;
+import org.apache.hadoop.hdfs.server.namenode.mountmanager.UGIResolver;
 import org.apache.hadoop.hdfs.server.namenode.syncservice.SyncServiceSatisfier;
 import org.apache.hadoop.hdfs.server.protocol.BulkSyncTaskExecutionFeedback;
 import org.apache.hadoop.hdfs.server.protocol.SlowDiskReports;
@@ -134,6 +135,7 @@ import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -836,6 +838,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
       this.dir = new FSDirectory(this, conf);
       this.snapshotManager = new SnapshotManager(conf, dir);
       this.mountManager = new MountManager(this);
+      this.mountManagersync = new org.apache.hadoop.hdfs.server.namenode.syncservice.MountManager(this);
 
       // block manager needs the haEnabled initialized
       this.blockManager = new BlockManager(this, haEnabled, conf);
@@ -8522,119 +8525,126 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
    */
   boolean addMount(String remotePath, String rootOfMount,
       Map<String, String> remoteConfig, Configuration conf)
-      throws FileAlreadyExistsException, StandbyException, IOException {
-    int maxMountsAllowed = conf.getInt(DFS_NAMENODE_MOUNT_NUM_MAX,
-        DFS_NAMENODE_MOUNT_NUM_MAX_DEFAULT);
-    checkCreateMountOperation(rootOfMount, maxMountsAllowed);
-    String opName = "addMount";
-    checkOperation(OperationCategory.WRITE);
-    checkNameNodeSafeMode("Cannot mount " + remotePath + " on " + rootOfMount);
-
-    ProvidedVolumeInfo providedVol = new ProvidedVolumeInfo(UUID.randomUUID(),
-        rootOfMount, remotePath, remoteConfig);
-    // temp directory used for the mount.
-    String tempMount;
-    writeLock();
-    Path mountPath = new Path(rootOfMount);
+          throws FileAlreadyExistsException, StandbyException, IOException {
     try {
-      checkCreateMountOperation(rootOfMount, maxMountsAllowed);
-      checkNameNodeSafeMode(
-          "Cannot mount " + remotePath + " on " + rootOfMount);
-      tempMount = mountManager.startMount(mountPath, providedVol);
-      // logs that the mount operation has started
-      dir.getEditLog().logAddMountOp(rootOfMount, providedVol);
-    } catch (Exception e) {
-      // clean up but do not log to edit log as it wouldn't have been
-      // successfully logged above.
-      mountManager.cleanUpMountOnFailure(mountPath, false);
-      throw e;
-    } finally {
-      writeUnlock(opName);
+      this.mkdirs(rootOfMount, new PermissionStatus("admin", "admin", FsPermission.getDefault()), true);
+      mountManagersync.createBackup(new Path(rootOfMount), new URI(remotePath));
+      return true;
+    } catch (URISyntaxException e) {
+      return false;
     }
-
-    LOG.info("Mounting " + remotePath + " on " + rootOfMount);
-    final List<TreePath> remotePaths;
-    try {
-      // Get remote paths without lock
-      remotePaths = FSMountAttrOp.getRemotePaths(
-          getMergedConfig(conf, remoteConfig), remotePath, tempMount);
-      // ensure that number of Inodes is fewer than max allowed!
-      checkMaxInodesAllowed(conf, remotePaths.size());
-    } catch (Exception e) {
-      // clean up
-      mountManager.cleanUpMountOnFailure(mountPath);
-      throw e;
-    }
-
-    LOG.info("Adding " + remotePaths.size() + " paths from " + remotePath +
-        " into " + rootOfMount);
-    try {
-      FSMountAttrOp.addMount(this, conf, opName, remotePaths);
-
-      // client will use xattr to identify a dir which is also a mount point
-      XAttr userXAttr = new XAttr.Builder()
-          .setNameSpace(XAttr.NameSpace.USER)
-          .setName(MountManager.IS_MOUNT_XATTR_NAME)
-          .setValue("true".getBytes())
-          .build();
-      setXAttr(tempMount, userXAttr, EnumSet.of(XAttrSetFlag.CREATE), false);
-
-      // the mount configuration would be sent to datanodes, as these will be
-      // needed for establishing connection with the remote store
-      for (Entry<String, String> configEntry : remoteConfig.entrySet()) {
-        XAttr trustedXAttr = new XAttr.Builder()
-            .setNameSpace(XAttr.NameSpace.TRUSTED)
-            .setName("mount.config." + configEntry.getKey())
-            .setValue(configEntry.getValue().getBytes())
-            .build();
-        setXAttr(tempMount, trustedXAttr, EnumSet.of(XAttrSetFlag.CREATE),
-            false);
-      }
-    } catch (Exception e) {
-      LOG.error("Exception in creating the mount point " +
-          rootOfMount + ": " + e);
-      mountManager.cleanUpMountOnFailure(mountPath);
-      throw e;
-    }
-
-    // now move the mount to final mount location.
-    writeLock();
-    try {
-      LOG.info("Renaming " + tempMount + " to " + rootOfMount +
-          " to finish mounting path " + remotePath);
-      // move the temp mount location to the final location.
-      // This marks finish of mount operation on success.
-      Path mountParent = mountPath.getParent();
-      // if parent of the mount path doesn't exist, create it.
-      // Directories created here need to be cleaned up if mounting fails
-      // from here on. TODO
-      if (getFileInfo(mountParent.toString(), false, false, false) == null) {
-        if (!mkdirsChecked(mountParent.toString(),
-            new PermissionStatus("", "", FsPermission.getDirDefault()),
-            true, path -> {})) {
-          throw new IOException(
-              "Unable to create parent of mount " + mountPath);
-        }
-      }
-      renameToChecked(tempMount, rootOfMount, false, path -> {},
-          Options.Rename.NONE);
-      mountManager.finishMount(mountPath);
-    } catch (Exception e) {
-      LOG.error("Exception in moving mount point " +
-          rootOfMount + "to final location: " + e);
-      mountManager.cleanUpMountOnFailure(mountPath);
-      throw e;
-    } finally {
-      writeUnlock(opName);
-    }
-
-    getEditLog().logSync();
-    logAuditEvent(true, opName, remotePath, rootOfMount, null);
-
-    // transfer the provided volume information to the datanodes
-    blockManager.getDatanodeManager().addProvidedVolume(providedVol);
-
-    return true;
+//    int maxMountsAllowed = conf.getInt(DFS_NAMENODE_MOUNT_NUM_MAX,
+//        DFS_NAMENODE_MOUNT_NUM_MAX_DEFAULT);
+//    checkCreateMountOperation(rootOfMount, maxMountsAllowed);
+//    String opName = "addMount";
+//    checkOperation(OperationCategory.WRITE);
+//    checkNameNodeSafeMode("Cannot mount " + remotePath + " on " + rootOfMount);
+//
+//    ProvidedVolumeInfo providedVol = new ProvidedVolumeInfo(UUID.randomUUID(),
+//        rootOfMount, remotePath, remoteConfig);
+//    // temp directory used for the mount.
+//    String tempMount;
+//    writeLock();
+//    Path mountPath = new Path(rootOfMount);
+//    try {
+//      checkCreateMountOperation(rootOfMount, maxMountsAllowed);
+//      checkNameNodeSafeMode(
+//          "Cannot mount " + remotePath + " on " + rootOfMount);
+//      tempMount = mountManager.startMount(mountPath, providedVol);
+//      // logs that the mount operation has started
+//      dir.getEditLog().logAddMountOp(rootOfMount, providedVol);
+//    } catch (Exception e) {
+//      // clean up but do not log to edit log as it wouldn't have been
+//      // successfully logged above.
+//      mountManager.cleanUpMountOnFailure(mountPath, false);
+//      throw e;
+//    } finally {
+//      writeUnlock(opName);
+//    }
+//
+//    LOG.info("Mounting " + remotePath + " on " + rootOfMount);
+//    final List<TreePath> remotePaths;
+//    try {
+//      // Get remote paths without lock
+//      remotePaths = FSMountAttrOp.getRemotePaths(
+//          getMergedConfig(conf, remoteConfig), remotePath, tempMount);
+//      // ensure that number of Inodes is fewer than max allowed!
+//      checkMaxInodesAllowed(conf, remotePaths.size());
+//    } catch (Exception e) {
+//      // clean up
+//      mountManager.cleanUpMountOnFailure(mountPath);
+//      throw e;
+//    }
+//
+//    LOG.info("Adding " + remotePaths.size() + " paths from " + remotePath +
+//        " into " + rootOfMount);
+//    try {
+//      FSMountAttrOp.addMount(this, conf, opName, remotePaths);
+//
+//      // client will use xattr to identify a dir which is also a mount point
+//      XAttr userXAttr = new XAttr.Builder()
+//          .setNameSpace(XAttr.NameSpace.USER)
+//          .setName(MountManager.IS_MOUNT_XATTR_NAME)
+//          .setValue("true".getBytes())
+//          .build();
+//      setXAttr(tempMount, userXAttr, EnumSet.of(XAttrSetFlag.CREATE), false);
+//
+//      // the mount configuration would be sent to datanodes, as these will be
+//      // needed for establishing connection with the remote store
+//      for (Entry<String, String> configEntry : remoteConfig.entrySet()) {
+//        XAttr trustedXAttr = new XAttr.Builder()
+//            .setNameSpace(XAttr.NameSpace.TRUSTED)
+//            .setName("mount.config." + configEntry.getKey())
+//            .setValue(configEntry.getValue().getBytes())
+//            .build();
+//        setXAttr(tempMount, trustedXAttr, EnumSet.of(XAttrSetFlag.CREATE),
+//            false);
+//      }
+//    } catch (Exception e) {
+//      LOG.error("Exception in creating the mount point " +
+//          rootOfMount + ": " + e);
+//      mountManager.cleanUpMountOnFailure(mountPath);
+//      throw e;
+//    }
+//
+//    // now move the mount to final mount location.
+//    writeLock();
+//    try {
+//      LOG.info("Renaming " + tempMount + " to " + rootOfMount +
+//          " to finish mounting path " + remotePath);
+//      // move the temp mount location to the final location.
+//      // This marks finish of mount operation on success.
+//      Path mountParent = mountPath.getParent();
+//      // if parent of the mount path doesn't exist, create it.
+//      // Directories created here need to be cleaned up if mounting fails
+//      // from here on. TODO
+//      if (getFileInfo(mountParent.toString(), false, false, false) == null) {
+//        if (!mkdirsChecked(mountParent.toString(),
+//            new PermissionStatus("", "", FsPermission.getDirDefault()),
+//            true, path -> {})) {
+//          throw new IOException(
+//              "Unable to create parent of mount " + mountPath);
+//        }
+//      }
+//      renameToChecked(tempMount, rootOfMount, false, path -> {},
+//          Options.Rename.NONE);
+//      mountManager.finishMount(mountPath);
+//    } catch (Exception e) {
+//      LOG.error("Exception in moving mount point " +
+//          rootOfMount + "to final location: " + e);
+//      mountManager.cleanUpMountOnFailure(mountPath);
+//      throw e;
+//    } finally {
+//      writeUnlock(opName);
+//    }
+//
+//    getEditLog().logSync();
+//    logAuditEvent(true, opName, remotePath, rootOfMount, null);
+//
+//    // transfer the provided volume information to the datanodes
+//    blockManager.getDatanodeManager().addProvidedVolume(providedVol);
+//
+//    return true;
   }
 
   private Configuration getMergedConfig(Configuration conf,

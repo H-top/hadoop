@@ -37,30 +37,31 @@ public class TestS3AMultipartUploaderSupport extends HadoopTestBase {
 
   @Test
   public void testRoundTrip() throws Throwable {
-    Pair<Long, String> result = roundTrip("tag", 1);
-    assertEquals("tag", result.getRight());
+    Pair<Long, Pair<Integer, String>> result = roundTrip("tag", 1, 1);
+    assertEquals("tag", result.getRight().getRight());
+    assertEquals(1, result.getRight().getLeft().intValue());
     assertEquals(1, result.getLeft().longValue());
   }
 
   @Test
   public void testRoundTrip2() throws Throwable {
     long len = 1L + Integer.MAX_VALUE;
-    Pair<Long, String> result = roundTrip("11223344",
-        len);
-    assertEquals("11223344", result.getRight());
+    Pair<Long, Pair<Integer, String>> result = roundTrip("11223344", 1, len);
+    assertEquals("11223344", result.getRight().getRight());
+    assertEquals(1, result.getRight().getLeft().intValue());
     assertEquals(len, result.getLeft().longValue());
   }
 
   @Test
   public void testNoEtag() throws Throwable {
     intercept(IllegalArgumentException.class,
-        () -> buildPartHandlePayload("", 1));
+        () -> buildPartHandlePayload("", 1, 1));
   }
 
   @Test
   public void testNoLen() throws Throwable {
     intercept(IllegalArgumentException.class,
-        () -> buildPartHandlePayload("tag", -1));
+        () -> buildPartHandlePayload("tag", 1, -1));
   }
 
   @Test
@@ -71,14 +72,14 @@ public class TestS3AMultipartUploaderSupport extends HadoopTestBase {
 
   @Test
   public void testBadHeader() throws Throwable {
-    byte[] bytes = buildPartHandlePayload("tag", 1);
+    byte[] bytes = buildPartHandlePayload("tag", 1, 1);
     bytes[2]='f';
     intercept(IOException.class, "header",
         () -> parsePartHandlePayload(bytes));
   }
 
-  private Pair<Long, String> roundTrip(final String tag, final long len) throws IOException {
-    byte[] bytes = buildPartHandlePayload(tag, len);
+  private Pair<Long, Pair<Integer, String>> roundTrip(final String tag, final int partNumber, final long len) throws IOException {
+    byte[] bytes = buildPartHandlePayload(tag, partNumber, len);
     return parsePartHandlePayload(bytes);
   }
 }

@@ -115,8 +115,13 @@ public class BlockSyncOperationExecutor  {
     SequenceInputStream inputStream =
         new SequenceInputStream(streamEnumeration);
     MultipartUploader mpu = multipartUploaderSupplier.apply(fs);
+    ByteBuffer uploadHandleCopy = ByteBuffer.allocate(uploadHandle.capacity());
+    uploadHandle.rewind();
+    uploadHandleCopy.put(uploadHandle);
+    uploadHandle.rewind();
+    uploadHandleCopy.flip();
     PartHandle partHandle = mpu.putPart(filePath, inputStream,
-        partNumber, BBUploadHandle.from(uploadHandle), length);
+        partNumber, BBUploadHandle.from(uploadHandleCopy), length);
     return new SyncTaskExecutionResult(partHandle.bytes(), length);
   }
 }

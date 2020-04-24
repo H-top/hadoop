@@ -302,10 +302,10 @@ public class MountManager implements Configurable {
       throws IOException {
 
     String toSnapshotName = Snapshot.generateDefaultSnapshotName();
-    fsNamesystem.createSnapshot(localBackupPath.toString(), toSnapshotName,
-        true);
     storeBackingUpPreviousToSnapshotNameAsXAttr(localBackupPath, toSnapshotName, REPLACE);
     storeBackingUpPreviousFromSnapshotNameAsXAttr(localBackupPath, fromSnapshotName, REPLACE);
+    fsNamesystem.createSnapshot(localBackupPath.toString(), toSnapshotName,
+            true);
 
     if (NO_FROM_SNAPSHOT_YET.equals(fromSnapshotName)) {
       //initial case
@@ -578,5 +578,18 @@ public class MountManager implements Configurable {
     SyncTaskStats stat = syncMounts.getOrDefault(syncMount,
         SyncTaskStats.empty());
     return stat.getBlockFailures();
+  }
+
+  public boolean emptyDiff(Path localPath) {
+    try {
+      String snapshotName = getBackingUpPreviousToSnapshotName(localPath);
+      SnapshotDiffReport diffReport = fsNamesystem
+              .getSnapshotDiffReport(localPath.toString(), snapshotName, "");
+      List<DiffReportEntry> diffList = diffReport.getDiffList();
+      return diffList.isEmpty();
+    } catch (IOException e) {
+      LOG.error("Failed to get SnapshotDiffReport for: {}", localPath.toString(), e);
+      return false;
+    }
   }
 }

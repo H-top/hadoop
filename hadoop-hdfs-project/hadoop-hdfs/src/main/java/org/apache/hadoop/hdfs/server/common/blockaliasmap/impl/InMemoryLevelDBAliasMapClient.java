@@ -177,7 +177,7 @@ public class InMemoryLevelDBAliasMapClient extends BlockAliasMap<FileRegion>
           return aliasMap;
         }
       } catch (IOException e) {
-        LOG.error("Exception in retrieving block pool id {}", e);
+        LOG.error("Exception in retrieving block pool id {}", blockPoolID, e);
       }
     }
     throw new IOException(

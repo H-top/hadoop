@@ -344,7 +344,7 @@ public class MountManager implements Configurable {
           backupFromSnapshotNameXattr,
           EnumSet.of(action), false);
     } catch (IOException e) {
-      LOG.error("Could not set XAttr PROVIDED_BACKUP_BACKING_UP_FROM_SNAPSHOT_NAME on {}",
+      LOG.error("Could not set XAttr PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME on {}",
           localBackupPath.toString());
     }
   }
@@ -390,7 +390,7 @@ public class MountManager implements Configurable {
           backupFromSnapshotNameXattr,
           EnumSet.of(CREATE), false);
     } catch (IOException e) {
-      LOG.error("Could not set XAttr PROVIDED_BACKUP_MOUNT_DETAILS on {}",
+      LOG.error("Could not set XAttr PROVIDED_SYNC_MOUNT_DETAILS on {}",
           mount.getLocalPath());
     }
   }
@@ -421,7 +421,7 @@ public class MountManager implements Configurable {
     return xAttrs.stream()
                  .findFirst()
                  .map(xAttr -> new String(xAttr.getValue()))
-                 .orElseThrow(() -> new MountException("Failed to get fromSnapshot from XArrt"));
+                 .orElseThrow(() -> new MountException("Failed to get toSnapshot from XArrt"));
   }
 
   public Optional<SyncMount> addPossibleLocalBackupDir(INode inode, int snapshotId) {

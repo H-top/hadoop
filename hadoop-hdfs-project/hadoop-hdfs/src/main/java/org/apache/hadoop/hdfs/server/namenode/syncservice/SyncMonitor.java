@@ -85,7 +85,7 @@ public class SyncMonitor {
       } else {
         inProgress.remove(syncMountId);
         this.trackersFailed.put(syncMountId, syncMountSnapshotUpdateTracker);
-        LOG.error("Issue when remounting sync mount after failed tracker. Tracker removed from trackers in progress.");
+        LOG.error("Tracker is invalid, removed from trackers in progress");
         return false;
       }
     })

@@ -91,7 +91,7 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
 
   @Override
   public boolean markFailed(UUID syncTaskId, SyncTaskExecutionResult result) {
-    LOG.error("Sync task currentTasks {}", syncTaskId);
+    LOG.error("Sync task currentTasks {} failed.", syncTaskId);
     boolean isTrackerStillValid = currentTasks.markFailure(syncTaskId);
     boolean multipartTrackerStillValid = multipartPlanOpt
         .map(multipartPlan -> multipartPlan.markFailed(syncTaskId, result))
@@ -278,7 +278,7 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
       try {
         aliasMapWriter.store(fileRegion);
       } catch (IOException e) {
-        LOG.error("Error updating BlockAliasMap for deleted file: {}, block: {} ",
+        LOG.error("Error updating BlockAliasMap for modify file: {}, block: {} ",
             syncTask.getUri(), block);
       }
       offset += block.getNumBytes();
@@ -298,7 +298,7 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
       try {
         aliasMapWriter.store(fileRegion);
       } catch (IOException e) {
-        LOG.error("Error updating BlockAliasMap for deleted file: {}, block: {} ",
+        LOG.error("Error updating BlockAliasMap for create file: {}, block: {} ",
             syncTask.getUri(), block);
       }
       offset += block.getNumBytes();
@@ -324,7 +324,7 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
         offset += block.getNumBytes();
       }
     } catch (IOException e) {
-      LOG.error("Error updating BlockAliasMap for deleted file: {} ",
+      LOG.error("Error updating BlockAliasMap for rename file: {} ",
           syncTask.getUri());
     }
   }
@@ -334,7 +334,7 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
       try {
         aliasMapWriter.remove(block);
       } catch (IOException e) {
-        LOG.error("Error updating BlockAliasMap for deleted file: {}, " +
+        LOG.error("Error updating BlockAliasMap for delete file: {}, " +
             "block: {}", syncTask.getUri(), block);
       }
     }

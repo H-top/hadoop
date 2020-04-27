@@ -59,7 +59,7 @@ public class DataNodeSyncTaskSchedulerImpl implements DataNodeSyncTaskScheduler 
 
     if (firstStorage != null) {
       DatanodeDescriptor datanodeDescriptor = firstStorage.getDatanodeDescriptor();
-      LOG.info("Scheduling MetadataSyncTask {} on data node {}",
+      LOG.info("Scheduling BlockSyncTask {} on data node {}",
           blockSyncTask.getSyncTaskId(), datanodeDescriptor.getName());
       datanodeDescriptor.scheduleSyncTaskOnHeartbeat(blockSyncTask);
     } else {
@@ -74,11 +74,11 @@ public class DataNodeSyncTaskSchedulerImpl implements DataNodeSyncTaskScheduler 
 
     if (randomDatanodeDescriptor.isPresent()) {
       DatanodeDescriptor datanodeDescriptor = randomDatanodeDescriptor.get();
-      LOG.info("Scheduling MetadataSyncTask {} on data node {}",
+      LOG.info("Scheduling BlockSyncTask {} on data node {}",
           blockSyncTask.getSyncTaskId(), datanodeDescriptor.getName());
       datanodeDescriptor.scheduleSyncTaskOnHeartbeat(blockSyncTask);
     } else {
-      throw new RuntimeException("Could not schedule task");
+      throw new RuntimeException("Could not schedule BlockSyncTask " + blockSyncTask.getSyncTaskId());
     }
   }
 

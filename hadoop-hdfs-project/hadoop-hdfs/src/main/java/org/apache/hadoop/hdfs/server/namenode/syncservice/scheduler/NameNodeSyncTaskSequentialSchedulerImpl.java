@@ -74,7 +74,7 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
       syncServiceSatisfier.handleExecutionFeedback(success);
       updateStats.accept(success);
     } catch (Exception e) {
-      LOG.error("Error running task on Namenode: ", e);
+      LOG.error("Error running task: {} on Namenode: ", metadataSyncTask, e);
       MetadataSyncTaskExecutionFeedback failure =
           MetadataSyncTaskExecutionFeedback.failedWithException(
               metadataSyncTask.getSyncTaskId(),

@@ -171,7 +171,7 @@ public class DirectoryPlanner {
       }
     } else {
       LOG.trace("Not backing up created INode {} as it has an unsupported type", node);
-      throw new IllegalArgumentException("TODO");
+      throw new IllegalArgumentException("Unsupported inode type");
     }
   }
 

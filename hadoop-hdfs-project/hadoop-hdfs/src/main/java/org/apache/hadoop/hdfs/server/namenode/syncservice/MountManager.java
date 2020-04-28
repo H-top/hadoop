@@ -158,6 +158,7 @@ public class MountManager implements Configurable {
     String localBackupPath =
         syncMountToCreate.getLocalPath().toString();
     fsNamesystem.allowSnapshot(localBackupPath);
+    fsNamesystem.createSnapshot(localBackupPath, NO_FROM_SNAPSHOT_YET, true);
     try {
       setXattrForBackupMount(syncMountToCreate);
     } catch (IOException e) {

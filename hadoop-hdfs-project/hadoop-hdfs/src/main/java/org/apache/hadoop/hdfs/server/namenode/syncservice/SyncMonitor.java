@@ -176,6 +176,7 @@ public class SyncMonitor {
     SyncMountSnapshotUpdateTracker tracker =
         SyncMountSnapshotUpdateTrackerFactory.create(planFromDiffReport,
             aliasMapWriter, conf);
+    inProgress.put(syncMount.getName(), tracker);
     scheduleNextWorkOnTracker(tracker, syncMount);
   }
 

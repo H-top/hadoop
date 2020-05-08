@@ -36,7 +36,7 @@ public class TestPartitionedDiffReport {
     when(diffReport.getDiffList()).thenReturn(diffReports);
 
     List<RenameEntryWithTemporaryName> actual = PartitionedDiffReport
-        .getRenameEntriesAndGenerateTemporaryNames(diffReport.getDiffList());
+        .getRenameEntriesAndGenerateTemporaryNames(diffReport.getDiffList(), diffReport);
 
     assertThat(actual).isEmpty();
   }
@@ -55,7 +55,7 @@ public class TestPartitionedDiffReport {
     when(diffReport.getDiffList()).thenReturn(diffReports);
 
     List<RenameEntryWithTemporaryName> actual = PartitionedDiffReport
-        .getRenameEntriesAndGenerateTemporaryNames(diffReport.getDiffList());
+        .getRenameEntriesAndGenerateTemporaryNames(diffReport.getDiffList(), diffReport);
 
     assertThat(actual).hasSize(3);
     List<DiffReportEntry> diffReportEntries = actual

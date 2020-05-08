@@ -97,8 +97,7 @@ public class PartitionedDiffReport {
     List<DiffReportEntry> renames = triagedMap.getOrDefault(ResultingOperation.RENAME,
         Collections.emptyList());
     List<RenameEntryWithTemporaryName> renameEntries =
-        getRenameEntriesAndGenerateTemporaryNames(
-            renames);
+        getRenameEntriesAndGenerateTemporaryNames(renames, diffReport);
 
     List<TranslatedEntry> translatedDeletes =
         handleDeletes(renameEntries,
@@ -154,11 +153,11 @@ public class PartitionedDiffReport {
 
   @VisibleForTesting
   static List<RenameEntryWithTemporaryName>
-  getRenameEntriesAndGenerateTemporaryNames(List<DiffReportEntry> renameEntries) {
+  getRenameEntriesAndGenerateTemporaryNames(List<DiffReportEntry> renameEntries, SnapshotDiffReport diffReport) {
     return renameEntries
         .stream()
         .sorted(reverseSourceNameOrder)
-        .map(RenameEntryWithTemporaryName::new)
+        .map(entry -> new RenameEntryWithTemporaryName(entry, diffReport))
         .collect(Collectors.toList());
   }
 
@@ -275,6 +274,10 @@ public class PartitionedDiffReport {
     private DiffReportEntry entry;
     private String temporaryName;
 
+    public RenameEntryWithTemporaryName(DiffReportEntry entry, SnapshotDiffReport diffReport) {
+      this.entry = entry;
+      this.temporaryName = "tmp-" + diffReport.getFromSnapshot() + "-" + diffReport.getLaterSnapshotName();
+    }
     public RenameEntryWithTemporaryName(DiffReportEntry entry) {
       this.entry = entry;
       this.temporaryName = "tmp-" + UUID.randomUUID().toString();

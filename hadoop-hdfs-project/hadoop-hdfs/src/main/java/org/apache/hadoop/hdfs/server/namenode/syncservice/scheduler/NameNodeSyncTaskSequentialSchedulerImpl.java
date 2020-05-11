@@ -99,9 +99,7 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
       for (ExtendedBlock extendedBlock : completeMetadataSyncTask.blocks) {
         Block localBlock = extendedBlock.getLocalBlock();
 
-        BlockInfo blockInfo = new BlockInfoContiguous(localBlock,
-            //TODO not block bytes, should be replication
-            (short) replication);
+        BlockInfo blockInfo = new BlockInfoContiguous(localBlock, (short) 1);
         blockInfo.setBlockCollectionId(completeMetadataSyncTask.getBlockCollectionId());
         this.blockManager.processProvidedBlockReport(blockInfo, localBlock);
       }

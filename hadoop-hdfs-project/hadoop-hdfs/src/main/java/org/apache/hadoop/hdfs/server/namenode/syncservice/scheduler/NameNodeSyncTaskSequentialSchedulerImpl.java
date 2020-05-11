@@ -44,7 +44,6 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
   private final SyncServiceSatisfier syncServiceSatisfier;
   private final Consumer<MetadataSyncTaskExecutionFeedback> updateStats;
   private BlockManager blockManager;
-  private int replication;
 
   public NameNodeSyncTaskSequentialSchedulerImpl(
       SyncServiceSatisfier syncServiceSatisfier,
@@ -56,7 +55,6 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
     this.updateStats = updateStats;
     this.syncOperationExecutor =
         MetadataSyncOperationExecutor.createOnNameNode(conf);
-    this.replication = conf.getInt(DFSConfigKeys.DFS_REPLICATION_KEY, DFSConfigKeys.DFS_REPLICATION_DEFAULT);
 
   }
 
@@ -94,9 +92,7 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
       for (ExtendedBlock extendedBlock : completeMetadataSyncTask.blocks) {
         Block localBlock = extendedBlock.getLocalBlock();
 
-        BlockInfo blockInfo = new BlockInfoContiguous(localBlock,
-            //TODO not block bytes, should be replication number (replication in config file or block replica number)
-            (short) replication);
+        BlockInfo blockInfo = new BlockInfoContiguous(localBlock, (short) 1);
         blockInfo.setBlockCollectionId(completeMetadataSyncTask.getBlockCollectionId());
         this.blockManager.processProvidedBlockReport(blockInfo, localBlock);
       }

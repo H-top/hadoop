@@ -120,11 +120,13 @@ public class DirectoryPlanner {
       case CREATE:
         SyncTask.CreateDirectorySyncTask createDir = SyncTask.createDirectory(remotePath,
             syncMount.getName());
+        LOG.info("created create directory sync task for :{}", absolutePath);
         plan.addDirSync(createDir);
         break;
       case DELETE:
         SyncTask.DeleteDirectorySyncTask deleteDir = SyncTask.deleteDirectory(
             remotePath, syncMount.getName());
+        LOG.info("created delete directory sync task for :{}", absolutePath);
         plan.addDirSync(deleteDir);
         break;
       default:
@@ -132,6 +134,7 @@ public class DirectoryPlanner {
             diffEntry.getInodeType());
       }
       //处理目录下的子目录
+      LOG.info("children for {}: {}", absolutePath, nodeDir.getChildrenList(snapshotId));
       for (INode inode : nodeDir.getChildrenList(snapshotId)) {
         FileAndDirsSyncTasks subPlan =
             createPlanForINode(diffEntry, snapshotId, inode, syncMount, targetName);
@@ -198,17 +201,20 @@ public class DirectoryPlanner {
         case CREATE:
           SyncTask.CreateDirectorySyncTask createDir = SyncTask.createDirectory(remotePath,
                                                                                 syncMount.getName());
+          LOG.info("created create directory sync task for :{}", nodeDir.toString());
           plan.addDirSync(createDir);
           break;
         case DELETE:
           SyncTask.DeleteDirectorySyncTask deleteDir = SyncTask.deleteDirectory(
                   remotePath, syncMount.getName());
+          LOG.info("created delete directory sync task for :{}", nodeDir.toString());
           plan.addDirSync(deleteDir);
           break;
         default:
           LOG.error("createPlanForDirectory called on directory that had diff {}",
                     diffEntry.getInodeType());
       }
+      LOG.info("children for {}: {}", nodeDir.toString(), nodeDir.getChildrenList(snapshotId));
       for (INode inode : nodeDir.getChildrenList(snapshotId)) {
         FileAndDirsSyncTasks subPlan = createPlanForINode(diffEntry, snapshotId, inode, syncMount, targetName);
         plan.append(subPlan);

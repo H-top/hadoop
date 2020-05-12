@@ -135,10 +135,13 @@ public class SyncServiceSatisfier implements Runnable {
     while (namesystem.isRunning() && this.isRunning && !manualMode) {
       try {
         scheduleOnce();
+      } catch (RuntimeException e) {
+        LOG.error("syncservice stopped: ", e);
       } catch (IOException e) {
         LOG.error("error during scheduling " + e);
       }
     }
+    LOG.info("syncservice stop info: {}, {}", namesystem.isRunning(), this.isRunning);
   }
 
   /**

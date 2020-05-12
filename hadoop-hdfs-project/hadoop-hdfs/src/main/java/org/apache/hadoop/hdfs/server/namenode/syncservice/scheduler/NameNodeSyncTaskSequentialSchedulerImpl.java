@@ -65,6 +65,7 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
   @Override
   public void scheduleOnNameNode(MetadataSyncTask metadataSyncTask) {
     try {
+      LOG.info("Running task {} on Namenode", metadataSyncTask);
       SyncTaskExecutionResult syncTaskExecutionResult =
           syncOperationExecutor.execute(metadataSyncTask);
       MetadataSyncTaskExecutionFeedback success = MetadataSyncTaskExecutionFeedback.finishedSuccessfully(

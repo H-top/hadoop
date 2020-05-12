@@ -242,6 +242,7 @@ public class SyncMonitor {
             syncMount.getLocalPath());
         sourceSnapshotId = getSourceSnapshotId(diffReport);
         targetSnapshotId = getTargetSnapshotId(diffReport);
+        LOG.info("sync snapshot {}", diffReport);
       } catch (IOException e) {
         LOG.error("Failed to take snapshot for: {}", syncMount, e);
         return;
@@ -250,7 +251,7 @@ public class SyncMonitor {
       PhasedPlan planFromDiffReport = syncMountSnapshotUpdatePlanFactory.
           createPlanFromDiffReport(syncMount, diffReport, sourceSnapshotId,
               targetSnapshotId);
-
+      LOG.info("created PhasedPlan: {}", planFromDiffReport);
       if (planFromDiffReport.isEmpty()) {
         /**
          * The tracker for an empty plan will never finish as there will
@@ -272,6 +273,7 @@ public class SyncMonitor {
   private void scheduleNextWorkOnTracker(SyncMountSnapshotUpdateTracker tracker, SyncMount syncMount) {
     inProgress.put(syncMount.getName(), tracker);
     SchedulableSyncPhase schedulableSyncPhase = tracker.getNextSchedulablePhase();
+    LOG.info("Generated SchedulableSyncPhase: {}", schedulableSyncPhase);
     syncTaskScheduler.schedule(schedulableSyncPhase);
   }
 

@@ -88,16 +88,19 @@ public class PhasedPlanFactory {
             syncMount, sourceSnapshot, targetSnapshotId);
     //TODO 为什么需要将tmp-->target的rename entry反向
     Collections.reverse(renameToFinalName);
+    LOG.info("created rename sync tasks");
     //对于diffreport为RENAME，但是实际操作为CREATE的entry，需要额外处理，不过总体和createCreateSyncTasks类似
     FileAndDirsSyncTasks createsSyncTasks = createCreatesFromRenamesSyncTasks(
         partitionedDiffReport.getCreatesFromRenames(), syncMount,
         targetSnapshotId);
+    LOG.info("created create sync tasks from renames");
     createsSyncTasks.append(createCreateSyncTasks(
         partitionedDiffReport.getCreates(), syncMount, targetSnapshotId));
     //不处理dir的modify操作，modify操作被视为create操作（为了幂等） TODO 不需要先delete再modify？
+    LOG.info("created create sync tasks");
     List<SyncTask> modifiedSyncTasks = createModifiedSyncTasks(
         partitionedDiffReport.getModifies(), syncMount, targetSnapshotId);
-
+    LOG.info("created modified sync tasks");
     /**
      * Currently, all modify tasks are translated to CREATE tasks for
      * idempotency's sake.
@@ -280,6 +283,7 @@ public class PhasedPlanFactory {
         plan.addFileSync(createFile);
         return plan;
       } catch (IOException e) {
+        LOG.error("error gen create file synctask for :{}", diffEntry, e);
         //TODO Handle errors
         throw new RuntimeException(e);
       }

@@ -29,6 +29,8 @@ import org.apache.hadoop.hdfs.server.namenode.INodeFile;
 import org.apache.hadoop.hdfs.server.namenode.Namesystem;
 import org.apache.hadoop.hdfs.server.protocol.SyncTask;
 import org.apache.hadoop.security.AccessControlException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,6 +44,8 @@ import static org.apache.hadoop.hdfs.server.namenode.syncservice.planner.Directo
 
 public class FilePlanner {
 
+  private static final Logger LOG =
+          LoggerFactory.getLogger(PhasedSyncMountSnapshotUpdateFactory.class);
   private Namesystem namesystem;
   private BlockManager blockManager;
 
@@ -115,11 +119,13 @@ public class FilePlanner {
   public SyncTask createCreatedFileSyncTasks(int targetSnapshotId,
       INodeFile nodeFile, SyncMount syncMount, String targetName) throws IOException {
     URI remotePath = createRemotePath(syncMount, targetName);
+    LOG.info("start create file sync task for :{}", targetName);
     while (nodeFile.isUnderConstruction()) {
       try {
         //TODO wait until file is not under construction
         // If file is under construction, we may miss syncing blocks which are under construction
-        nodeFile.wait(100);
+        LOG.info("time wait for file {} UC", nodeFile.toString());
+        Thread.sleep(10);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
@@ -135,6 +141,7 @@ public class FilePlanner {
     SyncTask createFileSyncTask =
         SyncTask.createFile(remotePath, syncMount.getName(),
             locatedBlocks.getLocatedBlocks(), blockCollectionId);
+    LOG.info("created create file sync task for :{}", targetName);
     return createFileSyncTask;
   }
 
@@ -147,7 +154,8 @@ public class FilePlanner {
       try {
         //TODO wait until file is not under construction
         // If file is under construction, we may miss syncing blocks which are under construction
-        nodeFile.wait(100);
+        Thread.sleep(10);
+        LOG.info("time wait for file {} UC", nodeFile.toString());
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
@@ -170,11 +178,11 @@ public class FilePlanner {
   public SyncTask createDeletedFileSyncTasks(int targetSnapshotId,
       INodeFile nodeFile, SyncMount syncMount, String targetName) throws IOException {
     URI remotePath = createRemotePath(syncMount, targetName);
-    BlockInfo[] nodeFileBlocks = nodeFile.getBlocks(targetSnapshotId);
-    if (nodeFileBlocks == null || nodeFileBlocks.length == 0) {
-      return SyncTask.touchFile(remotePath, syncMount.getName(),
-          nodeFile.getId());
-    }
+//    BlockInfo[] nodeFileBlocks = nodeFile.getBlocks(targetSnapshotId);
+//    if (nodeFileBlocks == null || nodeFileBlocks.length == 0) {
+//      return SyncTask.touchFile(remotePath, syncMount.getName(),
+//          nodeFile.getId());
+//    }
 
     LocatedBlocks locatedBlocks = getLocatedBlocks(targetSnapshotId, nodeFile);
 
@@ -183,6 +191,7 @@ public class FilePlanner {
         .collect(Collectors.toList());
     SyncTask deleteFileSyncTask =
         SyncTask.deleteFile(remotePath, blocks, syncMount.getName());
+    LOG.info("created delete file sync task for :{}", targetName);
     return deleteFileSyncTask;
   }
 

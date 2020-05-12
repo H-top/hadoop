@@ -119,7 +119,7 @@ public class FilePlanner {
       try {
         //TODO wait until file is not under construction
         // If file is under construction, we may miss syncing blocks which are under construction
-        Thread.sleep(10);
+        nodeFile.wait(100);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
@@ -147,7 +147,7 @@ public class FilePlanner {
       try {
         //TODO wait until file is not under construction
         // If file is under construction, we may miss syncing blocks which are under construction
-        Thread.sleep(10);
+        nodeFile.wait(100);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }

@@ -16,6 +16,7 @@
  */
 package org.apache.hadoop.hdfs.server.namenode.syncservice.planner;
 
+import org.apache.commons.math3.analysis.function.Log;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.protocol.SyncMount;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PROVIDED_BACKUP_INODEFILTER_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PROVIDED_BACKUP_INODEFILTER_KEY;
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PartitionedDiffReport.partition;
+import static org.apache.hadoop.util.ReflectionUtils.logThreadInfo;
 import static org.apache.hadoop.util.ReflectionUtils.newInstance;
 
 /**
@@ -74,7 +76,7 @@ public class PhasedSyncMountSnapshotUpdateFactory {
     PhasedPlan phasedPlan = phasedPlanFactory.createFromPartitionedDiffReport(
         partitionedDiffReport, syncMount, diffReport.getFromSnapshot(),
         sourceSnapshotId, targetSnapshotId);
-
+    LOG.info("Created phased plan for SyncMount {}", syncMount.getLocalPath().toString());
     return phasedPlan;
 
   }

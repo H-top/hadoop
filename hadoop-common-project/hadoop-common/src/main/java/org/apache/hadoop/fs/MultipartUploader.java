@@ -20,6 +20,7 @@ package org.apache.hadoop.fs;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -89,7 +90,7 @@ public abstract class MultipartUploader implements Closeable {
    * @throws IOException IO failure
    */
   public abstract PathHandle complete(Path filePath,
-      Map<Integer, PartHandle> handles,
+      List<PartHandle> handles,
       UploadHandle multipartUploadId)
       throws IOException;
 

@@ -16,8 +16,7 @@
  */
 package org.apache.hadoop.fs;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -26,9 +25,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
@@ -53,6 +57,7 @@ import static org.apache.hadoop.io.IOUtils.cleanupWithLogger;
 public class FileSystemMultipartUploader extends MultipartUploader {
 
   private final FileSystem fs;
+  public static final String HEADER = "FileSystem-part01";
 
   public FileSystemMultipartUploader(FileSystem fs) {
     this.fs = fs;
@@ -88,7 +93,7 @@ public class FileSystemMultipartUploader extends MultipartUploader {
       cleanupWithLogger(LOG, inputStream);
     }
     return BBPartHandle.from(ByteBuffer.wrap(
-        partPath.toString().getBytes(Charsets.UTF_8)));
+            buildPartHandlePayload(partNumber, partPath.toString())));
   }
 
   private Path createCollectorPath(Path filePath) {
@@ -114,20 +119,24 @@ public class FileSystemMultipartUploader extends MultipartUploader {
 
   @Override
   @SuppressWarnings("deprecation") // rename w/ OVERWRITE
-  public PathHandle complete(Path filePath, Map<Integer, PartHandle> handleMap,
+  public PathHandle complete(Path filePath, List<PartHandle> handleList,
       UploadHandle multipartUploadId) throws IOException {
 
     checkUploadId(multipartUploadId.toByteArray());
-
-    checkPartHandles(handleMap);
-    List<Map.Entry<Integer, PartHandle>> handles =
-        new ArrayList<>(handleMap.entrySet());
+    Map<Integer, Path> pathMap = Maps.newHashMap();
+    for (PartHandle handle : handleList) {
+      byte[] payload = handle.toByteArray();
+      Pair<Integer, Path> result = parsePartHandlePayload(payload);
+      pathMap.put(result.getLeft(), result.getRight());
+    }
+    List<Map.Entry<Integer, Path>> handles =
+        new ArrayList<>(pathMap.entrySet());
     handles.sort(Comparator.comparingInt(Map.Entry::getKey));
 
     List<Path> partHandles = handles
         .stream()
         .map(pair -> {
-          byte[] byteArray = pair.getValue().toByteArray();
+          byte[] byteArray = pair.getValue().toString().getBytes();
           return new Path(new String(byteArray, 0, byteArray.length,
               Charsets.UTF_8));
         })
@@ -175,6 +184,40 @@ public class FileSystemMultipartUploader extends MultipartUploader {
         return new FileSystemMultipartUploader(fs);
       }
       return null;
+    }
+  }
+
+  static byte[] buildPartHandlePayload(int partNumber, String partPath)
+          throws IOException {
+    Preconditions.checkArgument(partNumber > 0,
+            "Invalid partNumber");
+    Preconditions.checkArgument(StringUtils.isNotEmpty(partPath),
+            "Invalid partPath");
+
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    try(DataOutputStream output = new DataOutputStream(bytes)) {
+      output.writeUTF(HEADER);
+      output.writeInt(partNumber);
+      output.writeUTF(partPath);
+    }
+    return bytes.toByteArray();
+  }
+
+  static Pair<Integer, Path> parsePartHandlePayload(byte[] data)
+          throws IOException {
+
+    try(DataInputStream input =
+                new DataInputStream(new ByteArrayInputStream(data))) {
+      final String header = input.readUTF();
+      if (!HEADER.equals(header)) {
+        throw new IOException("Wrong header string: \"" + header + "\"");
+      }
+      final int partNumber = input.readInt();
+      if (partNumber < 0) {
+        throw new IOException("Negative part number");
+      }
+      final String partPath = input.readUTF();
+      return Pair.of(partNumber, new Path(partPath));
     }
   }
 }

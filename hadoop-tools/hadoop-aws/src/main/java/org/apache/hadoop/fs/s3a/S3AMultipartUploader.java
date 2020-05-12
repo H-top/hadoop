@@ -107,29 +107,26 @@ public class S3AMultipartUploader extends MultipartUploader {
 
   @Override
   public PathHandle complete(Path filePath,
-      Map<Integer, PartHandle> handleMap,
+      List<PartHandle> handleList,
       UploadHandle uploadId)
       throws IOException {
     byte[] uploadIdBytes = uploadId.toByteArray();
     checkUploadId(uploadIdBytes);
-
-    checkPartHandles(handleMap);
-    List<Map.Entry<Integer, PartHandle>> handles =
-        new ArrayList<>(handleMap.entrySet());
-    handles.sort(Comparator.comparingInt(Map.Entry::getKey));
     final WriteOperationHelper writeHelper = s3a.getWriteOperationHelper();
     String key = s3a.pathToKey(filePath);
 
     String uploadIdStr = new String(uploadIdBytes, 0, uploadIdBytes.length,
         Charsets.UTF_8);
     ArrayList<PartETag> eTags = new ArrayList<>();
-    eTags.ensureCapacity(handles.size());
+    eTags.ensureCapacity(handleList.size());
     long totalLength = 0;
-    for (Map.Entry<Integer, PartHandle> handle : handles) {
-      byte[] payload = handle.getValue().toByteArray();
+    for (PartHandle handle : handleList) {
+      byte[] payload = handle.toByteArray();
       Pair<Long, Pair<Integer, String>> result = parsePartHandlePayload(payload);
+      int partNumber = result.getRight().getLeft();
+      Preconditions.checkArgument(partNumber > 0, "Invalid part handle index %s", partNumber);
       totalLength += result.getLeft();
-      eTags.add(new PartETag(result.getRight().getLeft(), result.getRight().getRight()));
+      eTags.add(new PartETag(partNumber, result.getRight().getRight()));
     }
     AtomicInteger errorCount = new AtomicInteger(0);
     CompleteMultipartUploadResult result = writeHelper.completeMPUwithRetries(
@@ -177,6 +174,8 @@ public class S3AMultipartUploader extends MultipartUploader {
       throws IOException {
     Preconditions.checkArgument(StringUtils.isNotEmpty(eTag),
         "Empty etag");
+    Preconditions.checkArgument(partNumber > 0,
+            "Invalid partNumber");
     Preconditions.checkArgument(len >= 0,
         "Invalid length");
 

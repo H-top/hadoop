@@ -28,7 +28,7 @@ public class SyncTaskExecutionResult {
   private Long numberOfBytes;
 
   public SyncTaskExecutionResult(ByteBuffer result, Long numberOfBytes) {
-    this.result = result;
+    this.result = copyResult(result);
     this.numberOfBytes = numberOfBytes;
   }
 
@@ -42,5 +42,14 @@ public class SyncTaskExecutionResult {
 
   public Long getNumberOfBytes() {
     return numberOfBytes;
+  }
+
+  private ByteBuffer copyResult(ByteBuffer result) {
+    ByteBuffer resultCopy = ByteBuffer.allocate(result.capacity());
+    result.rewind();
+    resultCopy.put(result);
+    result.rewind();
+    resultCopy.flip();
+    return resultCopy;
   }
 }

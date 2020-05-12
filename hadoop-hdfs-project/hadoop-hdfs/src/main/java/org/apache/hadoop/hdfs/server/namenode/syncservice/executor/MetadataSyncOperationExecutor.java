@@ -16,6 +16,7 @@
  */
 package org.apache.hadoop.hdfs.server.namenode.syncservice.executor;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BBPartHandle;
@@ -143,13 +144,10 @@ public class MetadataSyncOperationExecutor {
       List<ExtendedBlock> blocks, ByteBuffer uploadHandle, List<ByteBuffer> partHandles)
       throws IOException {
     Path filePath = new Path(uri);
-    //<int, PartHandle> pair
-    Map<Integer, PartHandle> partList = IntStream
-        .range(0, partHandles.size())
-        .mapToObj(i -> Pair.of(i + 1, BBPartHandle.from(
-            partHandles.get(i))))
-        .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
-
+    List<PartHandle> partList = Lists.newArrayList();
+    for (ByteBuffer partHandle : partHandles) {
+      partList.add(BBPartHandle.from(partHandle));
+    }
     FileSystem fs = FileSystem.get(uri, conf);
     MultipartUploader mpu = MultipartUploaderFactory.get(fs, conf);
     PathHandle etag = mpu.complete(filePath, partList,

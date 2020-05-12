@@ -395,4 +395,13 @@ public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpda
   Optional<MultipartPlan> getMultipartPlanOpt() {
     return multipartPlanOpt;
   }
+
+//  public static byte[] byteBuffer2Array(ByteBuffer byteBuffer) {
+//    int position = byteBuffer.position();
+//    byteBuffer.rewind();
+//    byte[] bytes = new byte[byteBuffer.remaining()];
+//    byteBuffer.get(bytes);
+//    byteBuffer.position(position);
+//    return bytes;
+//  }
 }

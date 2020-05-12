@@ -18,7 +18,9 @@
 package org.apache.hadoop.fs.contract.s3a;
 
 import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -187,13 +189,13 @@ public class ITestS3AContractMultipartUploader extends
     MultipartUploader mpu = mpu(1);
     UploadHandle upload1 = mpu.initialize(path);
     byte[] dataset = dataset(1024, '0', 10);
-    final Map<Integer, PartHandle> handles = new HashMap<>();
+    final List<PartHandle> handles = new ArrayList<>();
     LOG.info("Uploading multipart entry");
     PartHandle value = mpu.putPart(path, new ByteArrayInputStream(dataset), 1,
         upload1,
         dataset.length);
     // upload 1K
-    handles.put(1, value);
+    handles.add(value);
     // confirm the path is absent
     ContractTestUtils.assertPathDoesNotExist(fs,
         "path being uploaded", path);

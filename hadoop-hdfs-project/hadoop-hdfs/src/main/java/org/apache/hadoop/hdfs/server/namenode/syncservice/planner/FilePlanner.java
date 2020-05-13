@@ -204,6 +204,9 @@ public class FilePlanner {
       return blockManager.createLocatedBlocks(blockInfos,
           fileLength,
           false, 0, fileLength, false, true, null, null);
+    } catch (IOException e) {
+      LOG.error("error get locatedblocks for :{}", nodeFile.toString(), e);
+      throw e;
     } finally {
       namesystem.readUnlock();
     }

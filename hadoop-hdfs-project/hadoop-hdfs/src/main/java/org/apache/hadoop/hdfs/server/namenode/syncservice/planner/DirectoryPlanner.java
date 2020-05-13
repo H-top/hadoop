@@ -16,6 +16,7 @@
  */
 package org.apache.hadoop.hdfs.server.namenode.syncservice.planner;
 
+import com.google.common.collect.Lists;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport.DiffReportEntry;
@@ -33,6 +34,8 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.apache.hadoop.hdfs.protocol.HdfsConstants.DOT_SNAPSHOT_DIR;
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.RemoteSyncURICreator.createRemotePath;
@@ -135,7 +138,8 @@ public class DirectoryPlanner {
       }
       //处理目录下的子目录
       LOG.info("children for {}: {}", absolutePath, nodeDir.getChildrenList(snapshotId));
-      for (INode inode : nodeDir.getChildrenList(snapshotId)) {
+      List<INode> iNodes = Lists.newArrayList(nodeDir.getChildrenList(snapshotId));
+      for (INode inode : iNodes) {
         FileAndDirsSyncTasks subPlan =
             createPlanForINode(diffEntry, snapshotId, inode, syncMount, targetName);
         plan.append(subPlan);
@@ -215,7 +219,8 @@ public class DirectoryPlanner {
                     diffEntry.getInodeType());
       }
       LOG.info("children for {}: {}", nodeDir.toString(), nodeDir.getChildrenList(snapshotId));
-      for (INode inode : nodeDir.getChildrenList(snapshotId)) {
+      List<INode> iNodes = Lists.newArrayList(nodeDir.getChildrenList(snapshotId));
+      for (INode inode : iNodes) {
         FileAndDirsSyncTasks subPlan = createPlanForINode(diffEntry, snapshotId, inode, syncMount, targetName);
         plan.append(subPlan);
       }

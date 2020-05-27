@@ -70,7 +70,7 @@ import static org.apache.hadoop.fs.XAttrSetFlag.REPLACE;
 @InterfaceStability.Unstable
 public class MountManager implements Configurable {
   public static final String PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME =
-      "PROVIDED_SYNC_FROM_SNAPSHOT_NAME";
+      "PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME";
   public static final String PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME =
           "PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME";
   public static final String PROVIDED_SYNC_MOUNT_DETAILS =

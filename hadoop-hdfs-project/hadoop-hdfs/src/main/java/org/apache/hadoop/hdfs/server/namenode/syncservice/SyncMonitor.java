@@ -157,6 +157,7 @@ public class SyncMonitor {
 
     MountManager mountManager = namesystem.getMountManagerSync();
     List<SyncMount> syncMounts = mountManager.getSyncMounts();
+    LOG.info("sync mounts to be sync: {}", syncMounts);
 
     for (SyncMount syncMount : syncMounts) {
       if (namesystem.isInSafeMode()) {

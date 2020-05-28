@@ -83,10 +83,12 @@ public class MountManager implements Configurable {
 
   public MountManager(FSNamesystem fsNamesystem) {
     this.fsNamesystem = fsNamesystem;
-    //从snapshotable dir的xarrt中获取所有的syncmount
-    this.syncMounts = findBackupDirsFromSnapshotDirs();
   }
 
+  public void startService() {
+    LOG.info("Loading SyncMounts from Snapshot dirs");
+    this.syncMounts = findBackupDirsFromSnapshotDirs();
+  }
   @Override
   public Configuration getConf() {
     return conf;

@@ -1306,6 +1306,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
 
       // update the mount status' after a failover.
       mountManager.startService();
+      mountManagersync.startService();
       // Initialize the quota.
       dir.updateCountForQuota();
       // Enable quota checks.

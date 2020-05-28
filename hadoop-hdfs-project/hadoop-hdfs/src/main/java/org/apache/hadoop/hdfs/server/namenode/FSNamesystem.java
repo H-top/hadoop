@@ -1287,6 +1287,8 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
         getFSImage().editLog.openForWrite(getEffectiveLayoutVersion());
       }
 
+      // Load mount point status
+      mountManager.startService();
       // Initialize the quota.
       dir.updateCountForQuota();
       // Enable quota checks.

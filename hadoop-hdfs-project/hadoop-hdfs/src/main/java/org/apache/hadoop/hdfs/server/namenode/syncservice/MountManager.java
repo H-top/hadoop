@@ -83,7 +83,14 @@ public class MountManager implements Configurable {
 
   public MountManager(FSNamesystem fsNamesystem) {
     this.fsNamesystem = fsNamesystem;
+  }
+
+  public void startService() {
+    LOG.info("Loading SyncMounts from Snapshot dirs");
     this.syncMounts = findBackupDirsFromSnapshotDirs();
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Loaded SyncMounts: {}", syncMounts);
+    }
   }
 
   @Override

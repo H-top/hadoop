@@ -83,7 +83,7 @@ public class BlockSyncOperationExecutor  {
 
   public SyncTaskExecutionResult execute(BlockSyncTask blockSyncTask)
       throws Exception {
-    LOG.info("Executing MetadataSyncTask {} (on {})",
+    LOG.info("Executing BlockSyncTask {} (on {})",
         blockSyncTask.getSyncTaskId(), blockSyncTask.getRemoteURI());
 
       return doMultiPartPart(

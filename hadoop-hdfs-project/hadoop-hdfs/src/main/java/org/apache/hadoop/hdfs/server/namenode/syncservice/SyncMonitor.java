@@ -20,8 +20,9 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.curator.shaded.com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ParentNotDirectoryException;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.UnresolvedLinkException;
+import org.apache.hadoop.fs.XAttrSetFlag;
+import org.apache.hadoop.hdfs.protocol.MountException;
 import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.protocol.SyncMount;
 import org.apache.hadoop.hdfs.server.common.FileRegion;
@@ -42,11 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * 维护syncmount update tracker（一个syncmount对应一个tracker？）
@@ -157,7 +154,6 @@ public class SyncMonitor {
 
     MountManager mountManager = namesystem.getMountManagerSync();
     List<SyncMount> syncMounts = mountManager.getSyncMounts();
-    LOG.info("sync mounts to be sync: {}", syncMounts);
 
     for (SyncMount syncMount : syncMounts) {
       if (namesystem.isInSafeMode()) {
@@ -199,6 +195,7 @@ public class SyncMonitor {
     PhasedPlan planFromDiffReport = syncMountSnapshotUpdatePlanFactory.
         createPlanFromDiffReport(syncMount, diffReport, sourceSnapshotId,
             targetSnapshotId);
+    LOG.info("created PhasedPlan: {}", planFromDiffReport);
 //    for (FileRegion fileRegion : aliasMapReader) {
 //      //TODO add nonce SyncMountSnapshotUpdateTrackerImpl#finalizeRenameFileTask
 //      Path pathInAliasMap = fileRegion.getProvidedStorageLocation().getPath();

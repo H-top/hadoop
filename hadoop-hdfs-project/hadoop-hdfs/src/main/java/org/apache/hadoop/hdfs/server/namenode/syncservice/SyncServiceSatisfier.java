@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Queues;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
+import org.apache.hadoop.hdfs.protocol.SyncMount;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockManager;
 import org.apache.hadoop.hdfs.server.common.FileRegion;
 import org.apache.hadoop.hdfs.server.common.blockaliasmap.BlockAliasMap;
@@ -39,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -132,6 +134,9 @@ public class SyncServiceSatisfier implements Runnable {
 
   @Override
   public void run() {
+    if (namesystem.isRunning() && this.isRunning) {
+      handleFailOver();
+    }
     while (namesystem.isRunning() && this.isRunning && !manualMode) {
       try {
         scheduleOnce();
@@ -144,16 +149,36 @@ public class SyncServiceSatisfier implements Runnable {
     LOG.info("syncservice stop info: {}, {}", namesystem.isRunning(), this.isRunning);
   }
 
+  private void handleFailOver() {
+    MountManager mountManager = namesystem.getMountManagerSync();
+    List<SyncMount> syncMounts = mountManager.getSyncMounts();
+    for (SyncMount syncMount : syncMounts) {
+      scheduleFullResync(syncMount.getName());
+//      try {
+//        String syncStatus = mountManager.getSyncStatusFromXAttr(syncMount.getLocalPath());
+//        if ("notsynced".equals(syncStatus)) {
+//          scheduleFullResync(syncMount.getName());
+//        }
+//      } catch (IOException e) {
+//        LOG.error("Failed to get sync status, scheduling resync for {}", syncMount.getLocalPath().toString());
+//        scheduleFullResync(syncMount.getName());
+//      }
+    }
+  }
+
   /**
    * 调用syncmonitor的方法schedule task
    */
   @VisibleForTesting
   public void scheduleOnce() throws IOException {
-    String resyncSyncMountId = this.fullResyncQueue.poll();
-    if (resyncSyncMountId != null) {
-      syncMonitor.resync(resyncSyncMountId, createAliasMapReader(blockManager, conf));
-    } else {
-      syncMonitor.scheduleNextWork();
+    if (!namesystem.isInSafeMode()){
+      String resyncSyncMountId = this.fullResyncQueue.poll();
+      if (resyncSyncMountId != null) {
+        LOG.info("Scheduling resync for {}", resyncSyncMountId);
+        syncMonitor.resync(resyncSyncMountId, createAliasMapReader(blockManager, conf));
+      } else {
+        syncMonitor.scheduleNextWork();
+      }
     }
     //TODO 目前metadatasynctask schedule实现是单线程，每次schedule后wait；blocksynctask是多线程，最多等待wait的时间
     synchronized (syncMonitor) {
@@ -221,6 +246,7 @@ public class SyncServiceSatisfier implements Runnable {
    * 将syncmount加入full resync queue
    */
   private void scheduleFullResync(String syncMountId) {
+    LOG.info("Queued {} for resync", syncMountId);
     this.fullResyncQueue.add(syncMountId);
   }
 

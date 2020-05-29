@@ -331,11 +331,11 @@ public class MountManager implements Configurable {
   public SnapshotDiffReport performPreviousDiff(Path localBackupPath) throws IOException {
     String fromSnapshotName = getBackingUpPreviousFromSnapshotName(localBackupPath);
     String toSnapshotName = getBackingUpPreviousToSnapshotName(localBackupPath);
-    if (NO_FROM_SNAPSHOT_YET.equals(fromSnapshotName)) {
-      return performInitialDiff(localBackupPath, toSnapshotName);
-    } else {
+//    if (NO_FROM_SNAPSHOT_YET.equals(fromSnapshotName)) {
+//      return performInitialDiff(localBackupPath, toSnapshotName);
+//    } else {
       return fsNamesystem.getSnapshotDiffReport(localBackupPath.toString(), fromSnapshotName, toSnapshotName);
-    }
+//    }
   }
 
   private void storeBackingUpPreviousFromSnapshotNameAsXAttr(Path localBackupPath, String snapshotName,
@@ -358,7 +358,7 @@ public class MountManager implements Configurable {
 
   private void storeBackingUpPreviousToSnapshotNameAsXAttr(Path localBackupPath, String snapshotName,
                                                            XAttrSetFlag action) {
-    XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
+    XAttr backupToSnapshotNameXattr = new XAttr.Builder()
             .setNameSpace(USER)
             .setName(PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME)
             .setValue(snapshotName.getBytes())
@@ -366,7 +366,7 @@ public class MountManager implements Configurable {
 
     try {
       fsNamesystem.setXAttr(localBackupPath.toString(),
-                            backupFromSnapshotNameXattr,
+                            backupToSnapshotNameXattr,
                             EnumSet.of(action), false);
     } catch (IOException e) {
       LOG.error("Could not set XAttr PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME on {}",

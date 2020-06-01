@@ -151,18 +151,11 @@ public class SyncServiceSatisfier implements Runnable {
 
   private void handleFailOver() {
     MountManager mountManager = namesystem.getMountManagerSync();
-    List<SyncMount> syncMounts = mountManager.getSyncMounts();
+//    List<SyncMount> syncMounts = mountManager.getSyncMounts();
+    List<SyncMount> syncMounts = mountManager.getSyncMountForResync();
+    LOG.info("Scheduling resync for fail over: {}", syncMounts);
     for (SyncMount syncMount : syncMounts) {
       scheduleFullResync(syncMount.getName());
-//      try {
-//        String syncStatus = mountManager.getSyncStatusFromXAttr(syncMount.getLocalPath());
-//        if ("notsynced".equals(syncStatus)) {
-//          scheduleFullResync(syncMount.getName());
-//        }
-//      } catch (IOException e) {
-//        LOG.error("Failed to get sync status, scheduling resync for {}", syncMount.getLocalPath().toString());
-//        scheduleFullResync(syncMount.getName());
-//      }
     }
   }
 

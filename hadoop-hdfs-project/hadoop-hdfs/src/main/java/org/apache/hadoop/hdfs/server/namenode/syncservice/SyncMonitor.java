@@ -112,6 +112,7 @@ public class SyncMonitor {
 
       if (syncMountSnapshotUpdateTracker.isFinished()) {
         inProgress.remove(syncMountId);
+        updateSyncMount(syncMountId);
         //tracker finish表示此次snapshot的sync结束，等待timeout进行下一次sync schedule，
         // 所以wait的timeout为两次snapshot sync的最大时间间隔，这里也不需要notify syncmonitor
         //No notification, as this is a timeout thing in the SyncServiceSatisfier
@@ -123,6 +124,15 @@ public class SyncMonitor {
       }
     });
 
+  }
+
+  private void updateSyncMount(String syncMountId) {
+    MountManager mountManager = namesystem.getMountManagerSync();
+    try {
+      mountManager.updateSyncMount(syncMountId);
+    } catch (IOException e) {
+      LOG.error("Failed to update synced SyncMount: {}", syncMountId);
+    }
   }
 
   @VisibleForTesting
@@ -255,6 +265,11 @@ public class SyncMonitor {
          * The tracker for an empty plan will never finish as there will
          * be no tasks to trigger the finish marking.
          */
+        try {
+          mountManager.updateSyncMount(syncMount.getName());
+        } catch (IOException e) {
+          LOG.error("Failed to update synced SyncMount: {}", syncMount.getLocalPath().toString());
+        }
         LOG.info("Empty plan, not starting a tracker");
       } else {
         SyncMountSnapshotUpdateTracker tracker =

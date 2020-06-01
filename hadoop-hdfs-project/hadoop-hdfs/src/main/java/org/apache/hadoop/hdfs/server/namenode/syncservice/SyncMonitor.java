@@ -20,7 +20,6 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.curator.shaded.com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ParentNotDirectoryException;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.UnresolvedLinkException;
 import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.protocol.SyncMount;
@@ -148,8 +147,10 @@ public class SyncMonitor {
       if (inProgress.containsKey(syncMount.getName())) {
         scheduleNextWorkOnTracker(inProgress.get(syncMount.getName()), syncMount);
       } else {
-        if (mountManager.emptyDiff(syncMount.getLocalPath())) {
-          LOG.info("Empty diff report since last sync operation for {}", syncMount.getLocalPath());
+        if (mountManager.isEmptyDiff(syncMount.getLocalPath())) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Empty diff report since last sync operation for {}", syncMount.getLocalPath());
+          }
           continue;
         }
         scheduleNewSyncMountSnapshotUpdate(syncMount);

@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Queues;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
+import org.apache.hadoop.hdfs.protocol.SyncMount;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockManager;
 import org.apache.hadoop.hdfs.server.common.FileRegion;
 import org.apache.hadoop.hdfs.server.common.blockaliasmap.BlockAliasMap;
@@ -39,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -128,6 +130,9 @@ public class SyncServiceSatisfier implements Runnable {
 
   @Override
   public void run() {
+    if (namesystem.isRunning() && this.isRunning) {
+      handleFailOver();
+    }
     while (namesystem.isRunning() && this.isRunning && !manualMode) {
       try {
         scheduleOnce();
@@ -137,13 +142,24 @@ public class SyncServiceSatisfier implements Runnable {
     }
   }
 
+  private void handleFailOver() {
+    MountManager mountManager = namesystem.getMountManager();
+    List<SyncMount> syncMounts = mountManager.getSyncMounts();
+    for (SyncMount syncMount : syncMounts) {
+      scheduleFullResync(syncMount.getName());
+    }
+  }
+
   @VisibleForTesting
   public void scheduleOnce() throws IOException {
-    String resyncSyncMountId = this.fullResyncQueue.poll();
-    if (resyncSyncMountId != null) {
-      syncMonitor.resync(resyncSyncMountId, createAliasMapReader(blockManager, conf));
-    } else {
-      syncMonitor.scheduleNextWork();
+    if (!namesystem.isInSafeMode()) {
+      String resyncSyncMountId = this.fullResyncQueue.poll();
+      if (resyncSyncMountId != null) {
+        LOG.info("Scheduling resync for {}", resyncSyncMountId);
+        syncMonitor.resync(resyncSyncMountId, createAliasMapReader(blockManager, conf));
+      } else {
+        syncMonitor.scheduleNextWork();
+      }
     }
     synchronized (syncMonitor) {
       try {

@@ -358,7 +358,7 @@ public class MountManager implements Configurable {
 
   private void storeBackingUpPreviousToSnapshotNameAsXAttr(Path localBackupPath, String snapshotName,
           XAttrSetFlag action) {
-    XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
+    XAttr backupToSnapshotNameXattr = new XAttr.Builder()
             .setNameSpace(USER)
             .setName(PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME)
             .setValue(snapshotName.getBytes())
@@ -366,7 +366,7 @@ public class MountManager implements Configurable {
 
     try {
       fsNamesystem.setXAttr(localBackupPath.toString(),
-                            backupFromSnapshotNameXattr,
+                            backupToSnapshotNameXattr,
                             EnumSet.of(action), false);
     } catch (IOException e) {
       LOG.error("Could not set XAttr PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME on {}",
@@ -419,12 +419,12 @@ public class MountManager implements Configurable {
 
   private String getBackingUpPreviousToSnapshotName(Path localBackupPath)
           throws IOException {
-    XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
+    XAttr backupToSnapshotNameXattr = new XAttr.Builder()
             .setNameSpace(USER)
             .setName(PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME)
             .build();
     List<XAttr> xAttrs = fsNamesystem.getXAttrs(localBackupPath.toString(),
-                                                Lists.newArrayList(backupFromSnapshotNameXattr));
+                                                Lists.newArrayList(backupToSnapshotNameXattr));
     return xAttrs.stream()
                  .findFirst()
                  .map(xAttr -> new String(xAttr.getValue()))
@@ -583,7 +583,7 @@ public class MountManager implements Configurable {
     return stat.getBlockFailures();
   }
 
-  public boolean emptyDiff(Path localPath) {
+  public boolean isEmptyDiff(Path localPath) {
     try {
       String snapshotName = getBackingUpPreviousToSnapshotName(localPath);
       SnapshotDiffReport diffReport = fsNamesystem

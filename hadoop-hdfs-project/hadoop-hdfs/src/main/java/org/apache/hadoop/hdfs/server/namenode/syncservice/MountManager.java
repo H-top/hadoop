@@ -111,13 +111,13 @@ public class MountManager implements Configurable {
   public String createBackup(SyncMount syncMountToCreate)
       throws MountException {
     try {
-      //enable mount dir的snapshot，并设置该dir的xattr（包含了syncmount的信息）
-      setUpFileSystemForSnapshotting(syncMountToCreate);
       //设置另一个xattr，因为是新建，value为：no_snapshot_yet（由此判定该路径下是否有改动？？？）
       storeBackingUpPreviousFromSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
           NO_FROM_SNAPSHOT_YET, CREATE);
       storeBackingUpPreviousToSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
           NO_FROM_SNAPSHOT_YET, CREATE);
+      //enable mount dir的snapshot，并设置该dir的xattr（包含了syncmount的信息）
+      setUpFileSystemForSnapshotting(syncMountToCreate);
 
     } catch (IOException e) {
       throw new MountException("Could not set up directory for snapshotting or create initial snapshot", e);
@@ -161,16 +161,15 @@ public class MountManager implements Configurable {
       throws IOException {
     String localBackupPath =
         syncMountToCreate.getLocalPath().toString();
-    fsNamesystem.allowSnapshot(localBackupPath);
-    fsNamesystem.createSnapshot(localBackupPath, NO_FROM_SNAPSHOT_YET, true);
     try {
       setXattrForBackupMount(syncMountToCreate);
     } catch (IOException e) {
       LOG.error("Could not set XAttr on {}, unwinding allowSnapshot",
           localBackupPath);
-      fsNamesystem.disallowSnapshot(localBackupPath);
       throw e;
     }
+    fsNamesystem.allowSnapshot(localBackupPath);
+    fsNamesystem.createSnapshot(localBackupPath, NO_FROM_SNAPSHOT_YET, true);
   }
 
   private void setXattrForBackupMount(SyncMount syncMount)
@@ -626,7 +625,10 @@ public class MountManager implements Configurable {
     for (SyncMount syncMount : syncMounts) {
       try {
         String snapshotFromXAttr = getBackingUpPreviousToSnapshotName(syncMount.getLocalPath());
-        String syncedFlag = snapshotFromXAttr + "-synced";
+//        String syncedFlag = snapshotFromXAttr + "-synced";
+        if (NO_FROM_SNAPSHOT_YET.equals(snapshotFromXAttr)) {
+          continue;
+        }
         Path localPath = syncMount.getLocalPath();
         INodeDirectory d = fsNamesystem.getFSDirectory().getINode(localPath.toString()).asDirectory();
         DirectorySnapshottableFeature sf = d.getDirectorySnapshottableFeature();
@@ -636,7 +638,7 @@ public class MountManager implements Configurable {
         ReadOnlyList<Snapshot> snapshotList = sf.getSnapshotList();
         for (Snapshot snapshot : snapshotList) {
           String snapshotName = Snapshot.getSnapshotName(snapshot);
-          if (snapshotName.equals(syncedFlag)) {
+          if (snapshotName.equals(snapshotFromXAttr)) {
             syncMountsToBeResync.add(syncMount);
             break;
           }

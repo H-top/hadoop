@@ -113,11 +113,11 @@ public class MountManager implements Configurable {
   public String createBackup(SyncMount syncMountToCreate)
       throws MountException {
     try {
-      setUpFileSystemForSnapshotting(syncMountToCreate);
       storeBackingUpPreviousFromSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
           NO_FROM_SNAPSHOT_YET, CREATE);
       storeBackingUpPreviousToSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
               NO_FROM_SNAPSHOT_YET, CREATE);
+      setUpFileSystemForSnapshotting(syncMountToCreate);
 
     } catch (IOException e) {
       throw new MountException("Could not set up directory for snapshotting or create initial snapshot", e);
@@ -160,8 +160,6 @@ public class MountManager implements Configurable {
       throws IOException {
     String localBackupPath =
         syncMountToCreate.getLocalPath().toString();
-    fsNamesystem.allowSnapshot(localBackupPath);
-    fsNamesystem.createSnapshot(localBackupPath, NO_FROM_SNAPSHOT_YET, true);
     try {
       setXattrForBackupMount(syncMountToCreate);
     } catch (IOException e) {
@@ -170,6 +168,8 @@ public class MountManager implements Configurable {
       fsNamesystem.disallowSnapshot(localBackupPath);
       throw e;
     }
+    fsNamesystem.allowSnapshot(localBackupPath);
+    fsNamesystem.createSnapshot(localBackupPath, NO_FROM_SNAPSHOT_YET, true);
   }
 
   private void setXattrForBackupMount(SyncMount syncMount)

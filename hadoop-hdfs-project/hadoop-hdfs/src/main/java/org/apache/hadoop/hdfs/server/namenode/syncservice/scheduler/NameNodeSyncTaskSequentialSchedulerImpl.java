@@ -17,7 +17,6 @@
 package org.apache.hadoop.hdfs.server.namenode.syncservice.scheduler;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation;
@@ -68,7 +67,7 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
           metadataSyncTask.getSyncMountId(),
           syncTaskExecutionResult,
           metadataSyncTask.getOperation());
-      handleBlockReportUpdate(metadataSyncTask, syncTaskExecutionResult);
+      handleBlockReportUpdate(metadataSyncTask);
       syncServiceSatisfier.handleExecutionFeedback(success);
       updateStats.accept(success);
     } catch (Exception e) {
@@ -84,8 +83,7 @@ public class NameNodeSyncTaskSequentialSchedulerImpl
     }
   }
 
-  private void handleBlockReportUpdate(MetadataSyncTask metadataSyncTask,
-      SyncTaskExecutionResult syncTaskExecutionResult) throws IOException {
+  private void handleBlockReportUpdate(MetadataSyncTask metadataSyncTask) throws IOException {
     if (metadataSyncTask.getOperation() == MetadataSyncTaskOperation.MULTIPART_COMPLETE) {
       MetadataSyncTask.MultipartCompleteMetadataSyncTask completeMetadataSyncTask =
           (MetadataSyncTask.MultipartCompleteMetadataSyncTask) metadataSyncTask;

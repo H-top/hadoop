@@ -17,12 +17,10 @@
 package org.apache.hadoop.hdfs.server.namenode.syncservice.planner;
 
 import com.google.common.collect.Lists;
-import org.apache.hadoop.hdfs.server.protocol.MetadataSyncTask;
 import org.apache.hadoop.hdfs.server.protocol.SyncTask;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class FileAndDirsSyncTasks {
 

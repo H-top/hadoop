@@ -58,13 +58,13 @@ public class SyncServiceSatisfier implements Runnable {
   private BlockManager blockManager;
 
   private SyncMonitor syncMonitor;
-  private Queue<String> fullResyncQueue;
+  private Queue<String> resyncQueue;
 
   public SyncServiceSatisfier(Namesystem namesystem, BlockManager blockManager, Configuration conf) {
     this.namesystem = namesystem;
     this.blockManager = blockManager;
     this.conf = conf;
-    this.fullResyncQueue = Queues.newConcurrentLinkedQueue();
+    this.resyncQueue = Queues.newConcurrentLinkedQueue();
   }
 
   /**
@@ -153,10 +153,10 @@ public class SyncServiceSatisfier implements Runnable {
   @VisibleForTesting
   public void scheduleOnce() throws IOException {
     if (!namesystem.isInSafeMode()) {
-      String resyncSyncMountId = this.fullResyncQueue.poll();
+      String resyncSyncMountId = this.resyncQueue.poll();
       if (resyncSyncMountId != null) {
         LOG.info("Scheduling resync for {}", resyncSyncMountId);
-        syncMonitor.resync(resyncSyncMountId, createAliasMapReader(blockManager, conf));
+        syncMonitor.resync(resyncSyncMountId);
       } else {
         syncMonitor.scheduleNextWork();
       }
@@ -217,7 +217,7 @@ public class SyncServiceSatisfier implements Runnable {
   }
 
   private void scheduleFullResync(String syncMountId) {
-    this.fullResyncQueue.add(syncMountId);
+    this.resyncQueue.add(syncMountId);
   }
 
   public boolean cancelCurrentAndScheduleFullResync(String syncMountId) {

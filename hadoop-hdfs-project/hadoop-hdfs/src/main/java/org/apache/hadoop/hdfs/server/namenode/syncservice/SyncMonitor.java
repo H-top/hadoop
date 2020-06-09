@@ -159,7 +159,7 @@ public class SyncMonitor {
     }
   }
 
-  public void resync(String syncMountId, BlockAliasMap.Reader<FileRegion> aliasMapReader) throws IOException {
+  public void resync(String syncMountId) throws IOException {
     MountManager mountManager = namesystem.getMountManager();
     SyncMount syncMount = mountManager.getSyncMount(syncMountId);
     SnapshotDiffReport diffReport =
@@ -169,11 +169,7 @@ public class SyncMonitor {
     PhasedPlan planFromDiffReport = syncMountSnapshotUpdatePlanFactory.
         createPlanFromDiffReport(syncMount, diffReport, sourceSnapshotId,
             targetSnapshotId);
-//    for (FileRegion fileRegion : aliasMapReader) {
-//      //TODO add nonce, or seperate create and modify
-//      Path pathInAliasMap = fileRegion.getProvidedStorageLocation().getPath();
-//      planFromDiffReport.filter(pathInAliasMap);
-//    }
+
     SyncMountSnapshotUpdateTracker tracker =
         SyncMountSnapshotUpdateTrackerFactory.create(planFromDiffReport,
             aliasMapWriter, conf);

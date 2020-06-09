@@ -16,18 +16,7 @@
  */
 package org.apache.hadoop.fs;
 
-import java.io.*;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import org.apache.commons.compress.utils.IOUtils;
@@ -37,6 +26,20 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.permission.FsPermission;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.apache.hadoop.fs.Path.mergePaths;
 import static org.apache.hadoop.io.IOUtils.cleanupWithLogger;

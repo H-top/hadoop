@@ -27,22 +27,24 @@ import org.apache.hadoop.hdfs.server.blockmanagement.BlockManager;
 import org.apache.hadoop.hdfs.server.namenode.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeFile;
 import org.apache.hadoop.hdfs.server.namenode.Namesystem;
-import org.apache.hadoop.hdfs.server.protocol.MetadataSyncTask;
+import org.apache.hadoop.hdfs.server.namenode.syncservice.SyncMonitor;
 import org.apache.hadoop.hdfs.server.protocol.SyncTask;
 import org.apache.hadoop.security.AccessControlException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.RemoteSyncURICreator.createRemotePath;
-import static org.apache.hadoop.hdfs.server.namenode.syncservice.RemoteSyncURICreator.createRemotePathFromAbsolutePath;
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.planner.DirectoryPlanner.convertPathToAbsoluteFile;
 
 public class FilePlanner {
+
+  private static final Logger LOG = LoggerFactory.getLogger(SyncMonitor.class);
 
   private Namesystem namesystem;
   private BlockManager blockManager;
@@ -64,8 +66,6 @@ public class FilePlanner {
       int targetSnapshotId, SnapshotDiffReport.DiffReportEntry entry,
       String targetName) throws IOException {
     INodeFile iNodeFile = getINodeFile(syncMount, entry);
-    long blockCollectionId = iNodeFile.getId();
-    BlockInfo[] nodeFileBlocks = iNodeFile.getBlocks(targetSnapshotId);
     return createCreatedFileSyncTasks(targetSnapshotId,
           iNodeFile, syncMount, targetName);
   }
@@ -107,7 +107,7 @@ public class FilePlanner {
         // If file is under construction, we may miss syncing blocks which are under construction
         Thread.sleep(10);
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        LOG.error("Thread interrupted while waiting file under construction");
       }
     }
     BlockInfo[] nodeFileBlocks = nodeFile.getBlocks(targetSnapshotId);
@@ -135,7 +135,7 @@ public class FilePlanner {
         // If file is under construction, we may miss syncing blocks which are under construction
         Thread.sleep(10);
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        LOG.error("Thread interrupted while waiting file under construction");
       }
     }
     long blockCollectionId = nodeFile.getId();

@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.PathHandle;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.ProvidedStorageLocation;
-import org.apache.hadoop.hdfs.protocolPB.PBHelper;
 import org.apache.hadoop.hdfs.server.common.FileRegion;
 import org.apache.hadoop.hdfs.server.common.blockaliasmap.BlockAliasMap;
 import org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PhasedPlan;
@@ -43,7 +42,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.apache.hadoop.hdfs.protocol.MetadataSyncTaskOperation.MODIFY_FILE;
 import static org.apache.hadoop.hdfs.server.protocol.SyncTask.*;
 
 public class SyncMountSnapshotUpdateTrackerImpl implements SyncMountSnapshotUpdateTracker {

@@ -18,15 +18,14 @@
 
 package org.apache.hadoop.fs.s3a;
 
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.hadoop.test.HadoopTestBase;
+import org.junit.Test;
+
 import java.io.EOFException;
 import java.io.IOException;
 
-import org.junit.Test;
-
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.hadoop.test.HadoopTestBase;
-
-import static org.apache.hadoop.fs.s3a.S3AMultipartUploader.*;
+import static org.apache.hadoop.fs.s3a.S3AMultipartUploader.buildPartHandlePayload;
 import static org.apache.hadoop.fs.s3a.S3AMultipartUploader.parsePartHandlePayload;
 import static org.apache.hadoop.test.LambdaTestUtils.intercept;
 

@@ -52,7 +52,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.apache.hadoop.fs.XAttr.NameSpace.USER;
@@ -113,10 +119,8 @@ public class MountManager implements Configurable {
   public String createBackup(SyncMount syncMountToCreate)
       throws MountException {
     try {
-      storeBackingUpPreviousFromSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
-          NO_FROM_SNAPSHOT_YET, CREATE);
-      storeBackingUpPreviousToSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
-              NO_FROM_SNAPSHOT_YET, CREATE);
+      storeBackingUpSnapshotNameAsXAttr(syncMountToCreate.getLocalPath(),
+          NO_FROM_SNAPSHOT_YET, NO_FROM_SNAPSHOT_YET, CREATE);
       setUpFileSystemForSnapshotting(syncMountToCreate);
 
     } catch (IOException e) {
@@ -306,8 +310,7 @@ public class MountManager implements Configurable {
       throws IOException {
 
     String toSnapshotName = Snapshot.generateDefaultSnapshotName();
-    storeBackingUpPreviousToSnapshotNameAsXAttr(localBackupPath, toSnapshotName, REPLACE);
-    storeBackingUpPreviousFromSnapshotNameAsXAttr(localBackupPath, fromSnapshotName, REPLACE);
+    storeBackingUpSnapshotNameAsXAttr(localBackupPath, fromSnapshotName, toSnapshotName, REPLACE);
     fsNamesystem.createSnapshot(localBackupPath.toString(), toSnapshotName,
             true);
 
@@ -338,39 +341,28 @@ public class MountManager implements Configurable {
     }
   }
 
-  private void storeBackingUpPreviousFromSnapshotNameAsXAttr(Path localBackupPath, String snapshotName,
-          XAttrSetFlag action) {
+  private void storeBackingUpSnapshotNameAsXAttr(Path localBackupPath, String fromSnapshotName,
+          String toSnapshotName, XAttrSetFlag action) throws IOException {
     XAttr backupFromSnapshotNameXattr = new XAttr.Builder()
         .setNameSpace(USER)
         .setName(PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME)
-        .setValue(snapshotName.getBytes())
+        .setValue(fromSnapshotName.getBytes())
         .build();
-
-    try {
-      fsNamesystem.setXAttr(localBackupPath.toString(),
-          backupFromSnapshotNameXattr,
-          EnumSet.of(action), false);
-    } catch (IOException e) {
-      LOG.error("Could not set XAttr PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME on {}",
-          localBackupPath.toString());
-    }
-  }
-
-  private void storeBackingUpPreviousToSnapshotNameAsXAttr(Path localBackupPath, String snapshotName,
-          XAttrSetFlag action) {
     XAttr backupToSnapshotNameXattr = new XAttr.Builder()
             .setNameSpace(USER)
             .setName(PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME)
-            .setValue(snapshotName.getBytes())
+            .setValue(toSnapshotName.getBytes())
             .build();
-
     try {
       fsNamesystem.setXAttr(localBackupPath.toString(),
-                            backupToSnapshotNameXattr,
-                            EnumSet.of(action), false);
+              backupFromSnapshotNameXattr,
+              EnumSet.of(action), false);
+      fsNamesystem.setXAttr(localBackupPath.toString(),
+              backupToSnapshotNameXattr,
+              EnumSet.of(action), false);
     } catch (IOException e) {
-      LOG.error("Could not set XAttr PROVIDED_SYNC_PREVIOUS_TO_SNAPSHOT_NAME on {}",
-                localBackupPath.toString());
+      LOG.error("Could not set XAttr on {}", localBackupPath.toString());
+      throw e;
     }
   }
 
@@ -413,7 +405,7 @@ public class MountManager implements Configurable {
     return xAttrs.stream()
         .findFirst()
         .map(xAttr -> new String(xAttr.getValue()))
-        .orElseThrow(() -> new MountException("Failed to get fromSnapshot from XArrt"));
+        .orElseThrow(() -> new MountException("Failed to get XAttr: " + PROVIDED_SYNC_PREVIOUS_FROM_SNAPSHOT_NAME));
 
   }
 

@@ -17,7 +17,6 @@
 package org.apache.hadoop.hdfs.server.namenode.syncservice.planner;
 
 import com.google.common.collect.Lists;
-import com.google.protobuf.compiler.PluginProtos;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport.DiffReportEntry;
@@ -39,7 +38,6 @@ import java.util.List;
 
 import static org.apache.hadoop.hdfs.protocol.HdfsConstants.DOT_SNAPSHOT_DIR;
 import static org.apache.hadoop.hdfs.server.namenode.syncservice.RemoteSyncURICreator.createRemotePath;
-import static org.apache.hadoop.hdfs.server.namenode.syncservice.RemoteSyncURICreator.createRemotePathFromAbsolutePath;
 
 public class DirectoryPlanner {
 
@@ -141,7 +139,6 @@ public class DirectoryPlanner {
 
     File fullPath = new File(node.getFullPathName());
     String targetName = parentTargetName + "/" + node.toString();
-    File targetPath = new File(targetName);
     if (syncServiceFileFilter.isExcluded(fullPath)) {
       return new FileAndDirsSyncTasks();
     } else if (node.isDirectory()) {
@@ -176,11 +173,9 @@ public class DirectoryPlanner {
   }
 
   private FileAndDirsSyncTasks recursivelyCreateSyncTaskFromINodeDirectory(DiffReportEntry diffEntry,
-      int snapshotId, INodeDirectory nodeDir, SyncMount syncMount, String targetName)
-      throws IOException {
+      int snapshotId, INodeDirectory nodeDir, SyncMount syncMount, String targetName) {
 
     try {
-      byte[] path = diffEntry.getSourcePath();
       FileAndDirsSyncTasks plan = new FileAndDirsSyncTasks();
 
       URI remotePath = createRemotePath(syncMount, targetName);

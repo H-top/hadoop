@@ -205,7 +205,6 @@ public class ITestS3AContractMultipartUploader extends
     eventually(timeToBecomeConsistentMillis(), 500, () -> {
       FileStatus mpuStatus = fs.getFileStatus(path);
       assertTrue("File is empty in " + mpuStatus, mpuStatus.getLen() > 0);
-      return mpuStatus;
     });
 
   }

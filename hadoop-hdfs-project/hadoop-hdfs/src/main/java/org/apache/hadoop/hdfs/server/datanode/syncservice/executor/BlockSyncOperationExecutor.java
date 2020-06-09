@@ -26,24 +26,22 @@ import org.apache.hadoop.fs.PartHandle;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.BlockInputStream;
 import org.apache.hadoop.hdfs.BlockReader;
-import org.apache.hadoop.hdfs.DFSInputStream;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.server.protocol.BlockSyncTask;
 import org.apache.hadoop.hdfs.server.protocol.SyncTaskExecutionResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * BlockSyncOperationExecutor writes the blocks to the sync service remote

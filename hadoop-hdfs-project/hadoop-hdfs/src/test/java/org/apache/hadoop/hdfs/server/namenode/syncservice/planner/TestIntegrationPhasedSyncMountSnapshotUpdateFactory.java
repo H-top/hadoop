@@ -16,7 +16,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.naming.directory.DirContext;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
@@ -28,8 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestIntegrationPhasedSyncMountSnapshotUpdateFactory {
 
-  private static final Logger LOG =
-      LoggerFactory.getLogger(TestIntegrationPhasedSyncMountSnapshotUpdateFactory.class);
   private static final long SEED = 0;
   private static final short REPLICATION = 1;
   private static final short REPLICATION_1 = 2;

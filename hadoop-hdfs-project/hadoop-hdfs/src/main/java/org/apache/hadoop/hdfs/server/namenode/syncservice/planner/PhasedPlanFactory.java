@@ -26,7 +26,6 @@ import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport.DiffReportEntry;
 import org.apache.hadoop.hdfs.protocol.SyncMount;
 import org.apache.hadoop.hdfs.server.namenode.INodeFile;
 import org.apache.hadoop.hdfs.server.namenode.syncservice.planner.PartitionedDiffReport.TranslatedEntry;
-import org.apache.hadoop.hdfs.server.protocol.MetadataSyncTask;
 import org.apache.hadoop.hdfs.server.protocol.SyncTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +35,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -64,7 +62,7 @@ public class PhasedPlanFactory {
 
     List<SyncTask> renameToTemporaryName =
         createRenameToTemporaryNameSyncTasks(partitionedDiffReport.getRenames(),
-            syncMount, sourceSnapshot, targetSnapshotId);
+            syncMount, targetSnapshotId);
 
     // We can't delete if we don't have a source snapshot.
     FileAndDirsSyncTasks deleteSyncTasks;
@@ -78,13 +76,13 @@ public class PhasedPlanFactory {
 
     List<SyncTask> renameToFinalName =
         createRenameToFinalNameSyncTasks(partitionedDiffReport.getRenames(),
-            syncMount, sourceSnapshot, targetSnapshotId);
+            syncMount, targetSnapshotId);
     Collections.reverse(renameToFinalName);
 
     FileAndDirsSyncTasks createsSyncTasks = createCreatesFromRenamesSyncTasks(
         partitionedDiffReport.getCreatesFromRenames(), syncMount,
         targetSnapshotId);
-    //NPE
+
     createsSyncTasks.append(createCreateSyncTasks(
         partitionedDiffReport.getCreates(), syncMount, targetSnapshotId));
 
@@ -105,10 +103,10 @@ public class PhasedPlanFactory {
 
   private List<SyncTask> createRenameToTemporaryNameSyncTasks(
       List<PartitionedDiffReport.RenameEntryWithTemporaryName> renames,
-      SyncMount syncMount, String sourceSnapshot, int targetSnapshotId) {
+      SyncMount syncMount, int targetSnapshotId) {
     return renames.stream()
         .map(entry -> convertRenameToTempNameToSyncTask(entry, syncMount,
-            sourceSnapshot, targetSnapshotId))
+            targetSnapshotId))
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toList());
@@ -116,10 +114,10 @@ public class PhasedPlanFactory {
 
   private List<SyncTask> createRenameToFinalNameSyncTasks(
       List<PartitionedDiffReport.RenameEntryWithTemporaryName> renames,
-      SyncMount syncMount, String sourceSnapshot, int targetSnapshotId) {
+      SyncMount syncMount, int targetSnapshotId) {
     return renames.stream()
         .map(entry -> convertRenameToFinalToSyncTask(entry, syncMount,
-            sourceSnapshot, targetSnapshotId))
+            targetSnapshotId))
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toList());
@@ -127,33 +125,33 @@ public class PhasedPlanFactory {
 
   private Optional<SyncTask> convertRenameToTempNameToSyncTask(
       PartitionedDiffReport.RenameEntryWithTemporaryName entryWithTempName,
-      SyncMount syncMount, String sourceSnapshot, int targetSnapshotId) {
+      SyncMount syncMount, int targetSnapshotId) {
     DiffReportEntry diffEntry = entryWithTempName.getEntry();
     URI sourceRemoteURI = createRemotePath(syncMount,
         DFSUtil.bytes2String(diffEntry.getSourcePath()));
     URI renameToRemoteURI = createRemotePath(syncMount,
         entryWithTempName.getTemporaryName());
     return createRenameSyncTask(diffEntry, sourceRemoteURI,
-        renameToRemoteURI, syncMount, sourceSnapshot, targetSnapshotId);
+        renameToRemoteURI, syncMount, targetSnapshotId);
   }
 
 
   private Optional<SyncTask> convertRenameToFinalToSyncTask(
       PartitionedDiffReport.RenameEntryWithTemporaryName entryWithTempName,
-      SyncMount syncMount, String sourceSnapshot, int targetSnapshotId) {
+      SyncMount syncMount, int targetSnapshotId) {
     DiffReportEntry diffEntry = entryWithTempName.getEntry();
     URI sourceRemoteURI = createRemotePath(syncMount,
         entryWithTempName.getTemporaryName());
     URI renameToRemoteURI = createRemotePath(syncMount,
         DFSUtil.bytes2String(diffEntry.getTargetPath()));
     return createRenameSyncTask(diffEntry, sourceRemoteURI,
-        renameToRemoteURI, syncMount, sourceSnapshot, targetSnapshotId);
+        renameToRemoteURI, syncMount, targetSnapshotId);
   }
 
   private Optional<SyncTask> createRenameSyncTask(
       DiffReportEntry diffEntry,
       URI sourceRemoteURI, URI renameToRemoteURI, SyncMount syncMount,
-      String sourceSnapshot, int targetSnapshotId) {
+      int targetSnapshotId) {
     if (diffEntry.getInodeType() == SnapshotDiffReport.INodeType.DIRECTORY) {
       return Optional.of(
           SyncTask.renameDirectory(sourceRemoteURI,

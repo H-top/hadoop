@@ -17,7 +17,6 @@
 package org.apache.hadoop.hdfs.server.namenode.syncservice.executor;
 
 import com.google.common.collect.Lists;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BBPartHandle;
 import org.apache.hadoop.fs.BBUploadHandle;
@@ -40,9 +39,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 
 public class MetadataSyncOperationExecutor {
@@ -74,8 +70,7 @@ public class MetadataSyncOperationExecutor {
       MetadataSyncTask.MultipartCompleteMetadataSyncTask mpcSyncTask =
           (MetadataSyncTask.MultipartCompleteMetadataSyncTask) metadataSyncTask;
       return doMultiPartComplete(mpcSyncTask.getUri(),
-          mpcSyncTask.blocks, mpcSyncTask.uploadHandle,
-          mpcSyncTask.partHandles);
+          mpcSyncTask.uploadHandle, mpcSyncTask.partHandles);
     case TOUCH_FILE:
       return doTouchFile(metadataSyncTask.getUri());
     case CREATE_DIRECTORY:
@@ -124,7 +119,7 @@ public class MetadataSyncOperationExecutor {
   }
 
   private SyncTaskExecutionResult doMultiPartComplete(URI uri,
-      List<ExtendedBlock> blocks, ByteBuffer uploadHandle, List<ByteBuffer> partHandles)
+      ByteBuffer uploadHandle, List<ByteBuffer> partHandles)
       throws IOException {
     Path filePath = new Path(uri);
     List<PartHandle> partList = Lists.newArrayList();

@@ -24,6 +24,7 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.*;
+import sun.rmi.runtime.Log;
 
 /**
  * Base mapper class for IO operations.
@@ -42,6 +43,7 @@ public abstract class IOMapperBase<T> extends Configured
   protected FileSystem fs;
   protected String hostName;
   protected Closeable stream;
+  protected int round;
 
   public IOMapperBase() { 
   }
@@ -60,6 +62,7 @@ public abstract class IOMapperBase<T> extends Configured
     } catch(Exception e) {
       hostName = "localhost";
     }
+    round = conf.getInt("read.round", 1);
   }
 
   public void close() throws IOException {
@@ -127,13 +130,15 @@ public abstract class IOMapperBase<T> extends Configured
     
     reporter.setStatus("starting " + name + " ::host = " + hostName);
 
-    this.stream = getIOStream(name);
-    T statValue = null;
     long tStart = System.currentTimeMillis();
-    try {
-      statValue = doIO(reporter, name, longValue);
-    } finally {
-      if(stream != null) stream.close();
+    T statValue = null;
+    for (int i=0; i<round; i++) {
+      this.stream = getIOStream(name);
+      try {
+        statValue = doIO(reporter, name, longValue);
+      } finally {
+        if(stream != null) stream.close();
+      }
     }
     long tEnd = System.currentTimeMillis();
     long execTime = tEnd - tStart;

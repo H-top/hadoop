@@ -16,7 +16,7 @@
  */
 package org.apache.hadoop.hdfs.server.namenode.syncservice.scheduler;
 
-import com.google.common.collect.Iterables;
+import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockManager;
 import org.apache.hadoop.hdfs.server.blockmanagement.DatanodeDescriptor;
 import org.apache.hadoop.hdfs.server.blockmanagement.DatanodeStorageInfo;
@@ -64,7 +64,13 @@ public class DataNodeSyncTaskSchedulerImpl implements DataNodeSyncTaskScheduler 
             .getBlock()
             .getLocalBlock());
 
-    DatanodeStorageInfo firstStorage = Iterables.getFirst(storages, null);
+    DatanodeStorageInfo firstStorage = null;
+    for (DatanodeStorageInfo storage : storages) {
+      if (storage.getStorageType() != StorageType.PROVIDED) {
+        firstStorage = storage;
+        break;
+      }
+    }
 
     if (firstStorage != null) {
       DatanodeDescriptor datanodeDescriptor = firstStorage.getDatanodeDescriptor();

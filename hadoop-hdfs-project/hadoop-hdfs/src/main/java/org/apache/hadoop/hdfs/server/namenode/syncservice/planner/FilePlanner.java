@@ -160,8 +160,12 @@ public class FilePlanner {
         e.printStackTrace();
       }
     }
-    long blockCollectionId = nodeFile.getId();
     URI remotePath = createRemotePath(syncMount, targetName);
+    BlockInfo[] nodeFileBlocks = nodeFile.getBlocks(targetSnapshotId);
+    long blockCollectionId = nodeFile.getId();
+    if (nodeFileBlocks == null || nodeFileBlocks.length == 0) {
+      return createTouchFileSyncTasks(remotePath, syncMount, blockCollectionId);
+    }
     LocatedBlocks locatedBlocks = getLocatedBlocks(targetSnapshotId, nodeFile);
 
     /*

@@ -301,8 +301,9 @@ public class TestDFSIO implements Tool {
         DFSConfigKeys.DFS_NAMENODE_MAX_DIRECTORY_ITEMS_KEY,
         DFSConfigKeys.DFS_NAMENODE_MAX_DIRECTORY_ITEMS_DEFAULT);
     Path controlDir = getControlDir(config);
+    int round = config.getInt("read.round", 1 );
 
-    if (nrFiles > maxDirItems) {
+    if (round * nrFiles > maxDirItems) {
       final String message = "The directory item limit of " + controlDir +
           " is exceeded: limit=" + maxDirItems + " items=" + nrFiles;
       throw new IOException(message);
@@ -310,22 +311,24 @@ public class TestDFSIO implements Tool {
 
     fs.delete(controlDir, true);
 
-    for(int i=0; i < nrFiles; i++) {
-      String name = getFileName(i);
-      Path controlFile = new Path(controlDir, "in_file_" + name);
-      SequenceFile.Writer writer = null;
-      try {
-        writer = SequenceFile.createWriter(fs, config, controlFile,
-                                           Text.class, LongWritable.class,
-                                           CompressionType.NONE);
-        writer.append(new Text(name), new LongWritable(nrBytes));
-      } catch(Exception e) {
-        throw new IOException(e.getLocalizedMessage());
-      } finally {
-        if (writer != null) {
-          writer.close();
+    for (int j=0; j < round; j++) {
+      for(int i=0; i < nrFiles; i++) {
+        String name = getFileName(i);
+        Path controlFile = new Path(controlDir, j + "_in_file_" + name);
+        SequenceFile.Writer writer = null;
+        try {
+          writer = SequenceFile.createWriter(fs, config, controlFile,
+                  Text.class, LongWritable.class,
+                  CompressionType.NONE);
+          writer.append(new Text(name), new LongWritable(nrBytes));
+        } catch(Exception e) {
+          throw new IOException(e.getLocalizedMessage());
+        } finally {
+          if (writer != null) {
+            writer.close();
+          }
+          writer = null;
         }
-        writer = null;
       }
     }
     LOG.info("created control files for: " + nrFiles + " files");
@@ -552,8 +555,6 @@ public class TestDFSIO implements Tool {
                      ) throws IOException {
       InputStream in = (InputStream)this.stream;
       long actualSize = 0;
-      LOG.info("read round {}", this.round);
-      LOG.info("start read in: {}", actualSize);
       while (actualSize < totalSize) {
         int curSize = in.read(buffer, 0, bufferSize);
         if(curSize < 0) break;
@@ -562,7 +563,6 @@ public class TestDFSIO implements Tool {
                            actualSize + "/" + totalSize
                            + " ::host = " + hostName);
       }
-      LOG.info("finish read in: {}", actualSize);
       return Long.valueOf(actualSize);
     }
   }
@@ -768,7 +768,7 @@ public class TestDFSIO implements Tool {
     String compressionClass = null;
     String storagePolicy = null;
     boolean isSequential = false;
-    String version = TestDFSIO.class.getSimpleName() + ".1.8";
+    String version = TestDFSIO.class.getSimpleName() + ".1.8-SNAPSHOT";
     int round = 1;
 
     LOG.info(version);
@@ -873,6 +873,8 @@ public class TestDFSIO implements Tool {
       cleanup(fs);
       return 0;
     }
+    LOG.info("perform DFSIO for {} round", round);
+    config.setInt("read.round", round);
     createControlFile(fs, nrBytes, nrFiles);
     long tStart = System.currentTimeMillis();
     switch(testType) {
@@ -880,8 +882,6 @@ public class TestDFSIO implements Tool {
       writeTest(fs);
       break;
     case TEST_TYPE_READ:
-      LOG.info("perform read for {} round", round);
-      config.setInt("read.round", round);
       readTest(fs);
       break;
     case TEST_TYPE_APPEND:

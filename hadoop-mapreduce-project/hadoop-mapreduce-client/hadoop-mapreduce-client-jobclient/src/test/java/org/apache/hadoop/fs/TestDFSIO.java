@@ -28,9 +28,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.StringTokenizer;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.hadoop.conf.Configuration;
@@ -109,7 +111,8 @@ public class TestDFSIO implements Tool {
                     " [-size Size[B|KB|MB|GB|TB]]" +
                     " [-resFile resultFileName] [-bufferSize Bytes]" +
                     " [-storagePolicy storagePolicyName]" +
-                    " [-erasureCodePolicy erasureCodePolicyName]";
+                    " [-erasureCodePolicy erasureCodePolicyName]" +
+                    " [-round round]";
 
   private Configuration config;
   private static final String STORAGE_POLICY_NAME_KEY =
@@ -548,16 +551,33 @@ public class TestDFSIO implements Tool {
                        String name, 
                        long totalSize // in bytes
                      ) throws IOException {
-      InputStream in = (InputStream)this.stream;
       long actualSize = 0;
-      while (actualSize < totalSize) {
-        int curSize = in.read(buffer, 0, bufferSize);
-        if(curSize < 0) break;
-        actualSize += curSize;
-        reporter.setStatus("reading " + name + "@" + 
-                           actualSize + "/" + totalSize 
-                           + " ::host = " + hostName);
+      LOG.info("read round {}", this.round);
+      LOG.info("start read in: {}", actualSize);
+      if (this.stream instanceof FSDataInputStream) {
+        FSDataInputStream in = (FSDataInputStream) this.stream;
+        LOG.info("reading with ByteBuffer based input stream");
+        while (actualSize < totalSize) {
+          ByteBuffer byteBuffer = in.read(null, bufferSize, EnumSet.of(ReadOption.SKIP_CHECKSUMS));
+          actualSize += byteBuffer.remaining();
+          byteBuffer.get(buffer, 0, byteBuffer.remaining());
+          reporter.setStatus("reading " + name + "@" +
+                  actualSize + "/" + totalSize
+                  + " ::host = " + hostName);
+          in.releaseBuffer(byteBuffer);
+        }
+      } else {
+        while (actualSize < totalSize) {
+          InputStream in = (InputStream)this.stream;
+          int curSize = in.read(buffer, 0, bufferSize);
+          if(curSize < 0) break;
+          actualSize += curSize;
+          reporter.setStatus("reading " + name + "@" +
+                  actualSize + "/" + totalSize
+                  + " ::host = " + hostName);
+        }
       }
+      LOG.info("finish read in: {}", actualSize);
       return Long.valueOf(actualSize);
     }
   }
@@ -764,6 +784,7 @@ public class TestDFSIO implements Tool {
     String storagePolicy = null;
     boolean isSequential = false;
     String version = TestDFSIO.class.getSimpleName() + ".1.8";
+    int round = 1;
 
     LOG.info(version);
     if (args.length == 0) {
@@ -810,6 +831,8 @@ public class TestDFSIO implements Tool {
         storagePolicy = args[++i];
       } else if (args[i].equalsIgnoreCase("-erasureCodePolicy")) {
         erasureCodePolicyName = args[++i];
+      } else if (args[i].equalsIgnoreCase("-round")) {
+        round = Integer.parseInt(args[++i]);
       } else {
         System.err.println("Illegal argument: " + args[i]);
         return -1;
@@ -872,6 +895,8 @@ public class TestDFSIO implements Tool {
       writeTest(fs);
       break;
     case TEST_TYPE_READ:
+      LOG.info("perform read for {} round", round);
+      config.setInt("read.round", round);
       readTest(fs);
       break;
     case TEST_TYPE_APPEND:

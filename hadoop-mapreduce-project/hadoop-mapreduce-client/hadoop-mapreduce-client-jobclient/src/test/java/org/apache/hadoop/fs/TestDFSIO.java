@@ -42,6 +42,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.protocol.BlockStoragePolicy;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
+import org.apache.hadoop.io.ElasticByteBufferPool;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.CompressionType;
@@ -555,11 +556,12 @@ public class TestDFSIO implements Tool {
       LOG.info("read round {}", this.round);
       LOG.info("start read in: {}", actualSize);
       if (this.stream instanceof FSDataInputStream) {
+        ElasticByteBufferPool bufferPool = new ElasticByteBufferPool();
         FSDataInputStream in = (FSDataInputStream) this.stream;
         LOG.info("reading with ByteBuffer based input stream with mmapsize {}", this.mmapsize);
         ByteBuffer byteBuffer = null;
         while (true) {
-          byteBuffer = in.read(null, mmapsize, EnumSet.of(ReadOption.SKIP_CHECKSUMS));
+          byteBuffer = in.read(bufferPool, mmapsize, EnumSet.of(ReadOption.SKIP_CHECKSUMS));
           if (byteBuffer == null) {
             break;
           }

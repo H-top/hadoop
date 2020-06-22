@@ -323,12 +323,6 @@ public class MountManager implements Configurable {
           localBackupPath.toString(), fromSnapshotName, toSnapshotName);
 
     }
-
-    // Deleting the snapshot here means that figuring out the 'from'
-    // snapshot later on will not work.
-//    fsNamesystem.deleteSnapshot(localBackupPath.toString(), fromSnapshotName,
-//    true);
-
   }
 
   public SnapshotDiffReport performPreviousDiff(Path localBackupPath) throws IOException {

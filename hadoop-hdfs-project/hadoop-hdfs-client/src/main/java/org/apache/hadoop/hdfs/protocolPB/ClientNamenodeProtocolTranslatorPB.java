@@ -1977,46 +1977,6 @@ public class ClientNamenodeProtocolTranslatorPB implements
     }
   }
 
-//  @Override
-//  public void syncCreateToRemoteStore(String src) throws IOException {
-//    SyncCreateToRemoteStoreRequestProto req =
-//        SyncCreateToRemoteStoreRequestProto.newBuilder()
-//            .setSrc(src)
-//            .build();
-//    try {
-//      rpcProxy.syncCreateToRemoteStore(null, req);
-//    } catch (ServiceException e) {
-//      throw ProtobufHelper.getRemoteException(e);
-//    }
-//  }
-//
-//  @Override
-//  public void syncRenameToRemoteStore(String src, String dest) throws IOException {
-//    SyncRenameToRemoteStoreRequestProto req =
-//        SyncRenameToRemoteStoreRequestProto.newBuilder()
-//            .setSrc(src)
-//            .setDest(dest)
-//            .build();
-//    try {
-//      rpcProxy.syncRenameToRemoteStore(null, req);
-//    } catch (ServiceException e) {
-//      throw ProtobufHelper.getRemoteException(e);
-//    }
-//  }
-//
-//  @Override
-//  public void syncDeleteToRemoteStore(String src) throws IOException {
-//    SyncDeleteToRemoteStoreRequestProto req =
-//        SyncDeleteToRemoteStoreRequestProto.newBuilder()
-//            .setSrc(src)
-//            .build();
-//    try {
-//      rpcProxy.syncDeleteToRemoteStore(null, req);
-//    } catch (ServiceException e) {
-//      throw ProtobufHelper.getRemoteException(e);
-//    }
-//  }
-
   @Override
   public HAServiceProtocol.HAServiceState getHAServiceState()
       throws IOException {

@@ -121,7 +121,7 @@ public class SyncServiceSatisfier implements Runnable {
     try {
       syncServiceSatisfierThread.join(3000);
     } catch (InterruptedException ie) {
-      LOG.error("syncservice interrupted while stopped");
+      LOG.error("syncservice interrupted while stopping");
     }
     if (isRunning) {
       stop();

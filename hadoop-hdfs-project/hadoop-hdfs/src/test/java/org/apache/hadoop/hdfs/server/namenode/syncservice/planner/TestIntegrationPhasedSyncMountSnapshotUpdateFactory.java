@@ -245,7 +245,7 @@ public class TestIntegrationPhasedSyncMountSnapshotUpdateFactory {
    * touch /basic-test/a/b/c/d/f1.bin
    * touch /basic-test/f1.bin
    */
-  @Test
+  @Test(timeout = 60000)
   public void testNewDirsNewFiles() throws Exception {
     final Path dir = new Path("/testNewDirsNewFiles");
     final Path subDir = new Path(dir, "a/b/c");
@@ -780,7 +780,7 @@ public class TestIntegrationPhasedSyncMountSnapshotUpdateFactory {
     assertThat(phasedPlan.peekCreateDirSyncTasks()).isEmpty();
   }
 
-  @Test
+  @Test(timeout = 60000)
   public void testSwapDirectoriesDeleteCreate() throws Exception {
     final Path dir = new Path("/testSwapDirectories");
     final Path file = new Path(dir, "file");

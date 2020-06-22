@@ -556,11 +556,18 @@ public class TestDFSIO implements Tool {
       LOG.info("start read in: {}", actualSize);
       if (this.stream instanceof FSDataInputStream) {
         FSDataInputStream in = (FSDataInputStream) this.stream;
-        LOG.info("reading with ByteBuffer based input stream");
-        while (actualSize < totalSize) {
-          ByteBuffer byteBuffer = in.read(null, bufferSize, EnumSet.of(ReadOption.SKIP_CHECKSUMS));
-          actualSize += byteBuffer.remaining();
-          byteBuffer.get(buffer, 0, byteBuffer.remaining());
+        LOG.info("reading with ByteBuffer based input stream with mmapsize {}", this.mmapsize);
+        ByteBuffer byteBuffer = null;
+        while (true) {
+          byteBuffer = in.read(null, mmapsize, EnumSet.of(ReadOption.SKIP_CHECKSUMS));
+          if (byteBuffer == null) {
+            break;
+          }
+          int readSize = byteBuffer.remaining();
+          actualSize += readSize;
+          while (byteBuffer.hasRemaining()) {
+            byteBuffer.get(buffer, 0, Math.min(this.bufferSize, byteBuffer.remaining()));
+          }
           reporter.setStatus("reading " + name + "@" +
                   actualSize + "/" + totalSize
                   + " ::host = " + hostName);
@@ -785,6 +792,7 @@ public class TestDFSIO implements Tool {
     boolean isSequential = false;
     String version = TestDFSIO.class.getSimpleName() + ".1.8";
     int round = 1;
+    int mmapsize = 128 * 1024 * 1024;
 
     LOG.info(version);
     if (args.length == 0) {
@@ -833,6 +841,8 @@ public class TestDFSIO implements Tool {
         erasureCodePolicyName = args[++i];
       } else if (args[i].equalsIgnoreCase("-round")) {
         round = Integer.parseInt(args[++i]);
+      } else if (args[i].equalsIgnoreCase("-mmapsize")) {
+        mmapsize = Integer.parseInt(args[++i]);
       } else {
         System.err.println("Illegal argument: " + args[i]);
         return -1;
@@ -895,8 +905,9 @@ public class TestDFSIO implements Tool {
       writeTest(fs);
       break;
     case TEST_TYPE_READ:
-      LOG.info("perform read for {} round", round);
+      LOG.info("perform read for {} round, mmapsize {}", round, mmapsize);
       config.setInt("read.round", round);
+      config.setInt("read.mmapsize", mmapsize);
       readTest(fs);
       break;
     case TEST_TYPE_APPEND:

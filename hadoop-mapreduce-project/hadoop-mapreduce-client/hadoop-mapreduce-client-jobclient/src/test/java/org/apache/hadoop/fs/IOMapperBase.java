@@ -43,6 +43,7 @@ public abstract class IOMapperBase<T> extends Configured
   protected String hostName;
   protected Closeable stream;
   protected int round;
+  protected int mmapsize;
 
   public IOMapperBase() { 
   }
@@ -62,6 +63,7 @@ public abstract class IOMapperBase<T> extends Configured
       hostName = "localhost";
     }
     round = conf.getInt("read.round", 1);
+    mmapsize = conf.getInt("read.mmapsize", 1);
   }
 
   public void close() throws IOException {

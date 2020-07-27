@@ -41,17 +41,21 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.SyncMo
 import org.apache.hadoop.hdfs.protocolPB.PBHelperClient;
 import org.apache.hadoop.hdfs.server.namenode.FSNamesystem;
 import org.apache.hadoop.hdfs.server.namenode.INode;
+import org.apache.hadoop.hdfs.server.namenode.INodeDirectory;
 import org.apache.hadoop.hdfs.server.namenode.XAttrStorage;
+import org.apache.hadoop.hdfs.server.namenode.snapshot.DirectorySnapshottableFeature;
 import org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot;
 import org.apache.hadoop.hdfs.server.namenode.snapshot.SnapshotManager;
 import org.apache.hadoop.hdfs.server.protocol.BlockSyncTaskExecutionFeedback;
 import org.apache.hadoop.hdfs.server.protocol.BulkSyncTaskExecutionFeedback;
 import org.apache.hadoop.hdfs.server.protocol.MetadataSyncTaskExecutionFeedback;
+import org.apache.hadoop.hdfs.util.ReadOnlyList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -293,6 +297,12 @@ public class MountManager implements Configurable {
   public SnapshotDiffReport makeSnapshotAndPerformDiff(Path localBackupPath)
       throws IOException {
     String fromSnapshotName = getBackingUpPreviousToSnapshotName(localBackupPath);
+    if (!NO_FROM_SNAPSHOT_YET.equals(fromSnapshotName)) {
+      String snapshotName = getSnapshotNameFromXAttr(fromSnapshotName, localBackupPath);
+      if (!snapshotName.endsWith("synced")) {
+        return performPreviousDiff(localBackupPath);
+      }
+    }
     deleteBackingUpPreviousFromSnapshot(localBackupPath);
     return makeSnapshotAndPerformDiffInternal(localBackupPath, fromSnapshotName);
   }
@@ -301,6 +311,8 @@ public class MountManager implements Configurable {
     String previousFromSnapshotName = getBackingUpPreviousFromSnapshotName(localBackupPath);
     if (NO_FROM_SNAPSHOT_YET.equals(previousFromSnapshotName)) {
       return;
+    } else {
+      previousFromSnapshotName += "-synced";
     }
     fsNamesystem.deleteSnapshot(localBackupPath.toString(), previousFromSnapshotName, true);
   }
@@ -319,6 +331,7 @@ public class MountManager implements Configurable {
       return performInitialDiff(localBackupPath, toSnapshotName);
     } else {
       //Normal case
+      fromSnapshotName = fromSnapshotName + "-synced";
       return fsNamesystem.getSnapshotDiffReport(
           localBackupPath.toString(), fromSnapshotName, toSnapshotName);
 
@@ -328,11 +341,10 @@ public class MountManager implements Configurable {
   public SnapshotDiffReport performPreviousDiff(Path localBackupPath) throws IOException {
     String fromSnapshotName = getBackingUpPreviousFromSnapshotName(localBackupPath);
     String toSnapshotName = getBackingUpPreviousToSnapshotName(localBackupPath);
-    if (NO_FROM_SNAPSHOT_YET.equals(fromSnapshotName)) {
-      return performInitialDiff(localBackupPath, toSnapshotName);
-    } else {
-      return fsNamesystem.getSnapshotDiffReport(localBackupPath.toString(), fromSnapshotName, toSnapshotName);
+    if (!NO_FROM_SNAPSHOT_YET.equals(fromSnapshotName)) {
+      fromSnapshotName = fromSnapshotName + "-synced";
     }
+    return fsNamesystem.getSnapshotDiffReport(localBackupPath.toString(), fromSnapshotName, toSnapshotName);
   }
 
   private void storeBackingUpSnapshotNameAsXAttr(Path localBackupPath, String fromSnapshotName,
@@ -572,6 +584,9 @@ public class MountManager implements Configurable {
   public boolean isEmptyDiff(Path localPath) {
     try {
       String snapshotName = getBackingUpPreviousToSnapshotName(localPath);
+      if (!NO_FROM_SNAPSHOT_YET.equals(snapshotName)) {
+        snapshotName = snapshotName + "-synced";
+      }
       SnapshotDiffReport diffReport = fsNamesystem
               .getSnapshotDiffReport(localPath.toString(), snapshotName, "");
       List<DiffReportEntry> diffList = diffReport.getDiffList();
@@ -581,4 +596,61 @@ public class MountManager implements Configurable {
       return false;
     }
   }
+
+
+  public void updateSyncMount(String syncMountId) throws IOException {
+    SyncMount syncMount = getSyncMount(syncMountId);
+    String snapshotName = getBackingUpPreviousToSnapshotName(syncMount.getLocalPath());
+    String updatedSnapshotName = snapshotName + "-synced";
+    fsNamesystem.renameSnapshot(syncMount.getLocalPath().toString(), snapshotName, updatedSnapshotName, false);
+  }
+
+  public List<SyncMount> getSyncMountForResync() {
+    List<SyncMount> syncMountsToBeResync = new ArrayList<>();
+    List<SyncMount> syncMounts = getSyncMounts();
+    for (SyncMount syncMount : syncMounts) {
+      try {
+        String snapshotFromXAttr = getBackingUpPreviousToSnapshotName(syncMount.getLocalPath());
+        String syncedFlag = snapshotFromXAttr + "-synced";
+        Path localPath = syncMount.getLocalPath();
+        INodeDirectory d = fsNamesystem.getFSDirectory().getINode(localPath.toString()).asDirectory();
+        DirectorySnapshottableFeature sf = d.getDirectorySnapshottableFeature();
+        if (sf == null) {
+          continue;
+        }
+        ReadOnlyList<Snapshot> snapshotList = sf.getSnapshotList();
+        for (Snapshot snapshot : snapshotList) {
+          String snapshotName = Snapshot.getSnapshotName(snapshot);
+          if (snapshotName.equals(syncedFlag)) {
+            syncMountsToBeResync.add(syncMount);
+            break;
+          }
+        }
+      } catch (IOException e) {
+        LOG.error("Failed to get sync status for {}, adding for resync", syncMount);
+        syncMountsToBeResync.add(syncMount);
+      }
+    }
+    return syncMountsToBeResync;
+  }
+  private String getSnapshotNameFromXAttr(String snapshotFromXAttr, Path dir) {
+    try {
+      INodeDirectory d = fsNamesystem.getFSDirectory().getINode(dir.toString()).asDirectory();
+      DirectorySnapshottableFeature sf = d.getDirectorySnapshottableFeature();
+      if (sf == null) {
+        return "";
+      }
+      ReadOnlyList<Snapshot> snapshotList = sf.getSnapshotList();
+      for (Snapshot snapshot : snapshotList) {
+        String snapshotName = Snapshot.getSnapshotName(snapshot);
+        if (snapshotName.startsWith(snapshotFromXAttr)) {
+          return snapshotName;
+        }
+      }
+      return "";
+    } catch (IOException e) {
+      return "";
+    }
+  }
+
 }

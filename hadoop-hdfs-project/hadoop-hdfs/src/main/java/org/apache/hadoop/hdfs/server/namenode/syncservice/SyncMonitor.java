@@ -101,13 +101,22 @@ public class SyncMonitor {
 
       if (syncMountSnapshotUpdateTracker.isFinished()) {
         inProgress.remove(syncMountId);
-
+        updateSyncMount(syncMountId);
         //No notification, as this is a timeout thing in the SyncServiceSatisfier
       } else {
         this.notify();
       }
     });
 
+  }
+
+  private void updateSyncMount(String syncMountId) {
+    MountManager mountManager = namesystem.getMountManager();
+    try {
+      mountManager.updateSyncMount(syncMountId);
+    } catch (IOException e) {
+      LOG.error("Failed to update synced SyncMount: {}", syncMountId);
+    }
   }
 
   @VisibleForTesting
@@ -221,6 +230,11 @@ public class SyncMonitor {
          * The tracker for an empty plan will never finish as there will
          * be no tasks to trigger the finish marking.
          */
+        try {
+          mountManager.updateSyncMount(syncMount.getName());
+        } catch (IOException e) {
+          LOG.error("Failed to update synced SyncMount: {}", syncMount.getLocalPath().toString());
+        }
         LOG.info("Empty plan, not starting a tracker");
       } else {
         SyncMountSnapshotUpdateTracker tracker =

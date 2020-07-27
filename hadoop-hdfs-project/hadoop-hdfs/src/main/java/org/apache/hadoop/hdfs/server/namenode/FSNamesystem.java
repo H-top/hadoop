@@ -6711,7 +6711,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
    * @throws SafeModeException
    * @throws IOException 
    */
-  void renameSnapshot(
+  public void renameSnapshot(
       String path, String snapshotOldName, String snapshotNewName,
       boolean logRetryCache) throws IOException {
     checkOperation(OperationCategory.WRITE);

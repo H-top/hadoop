@@ -144,7 +144,7 @@ public class SyncServiceSatisfier implements Runnable {
 
   private void handleFailOver() {
     MountManager mountManager = namesystem.getMountManager();
-    List<SyncMount> syncMounts = mountManager.getSyncMounts();
+    List<SyncMount> syncMounts = mountManager.getSyncMountForResync();
     for (SyncMount syncMount : syncMounts) {
       scheduleFullResync(syncMount.getName());
     }
